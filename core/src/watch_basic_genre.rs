@@ -6,6 +6,9 @@ use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
 use futures_util::StreamExt;
 use futures_util::pin_mut;
+use tokio::time::Duration;
+use tokio::time::sleep;
+use tracing::info;
 
 pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
     let dao = Dao::new().await?;
@@ -26,6 +29,7 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
 
     let emos_api = emos_api::EmosApi::new()?;
     while let Some(Ok(value)) = s.next().await {
+        info!("fetch {} videos", value.len());
         let req = value
             .into_iter()
             .map(|v| UpdateWatchVideoBatchItem {
@@ -36,7 +40,7 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
 
         emos_api.batch_update_watch_videos(watch_id, req).await?;
 
-        tokio::time::sleep(std::time::Duration::from_millis(3000)).await;
+        sleep(Duration::from_secs(10)).await;
     }
 
     Ok(())
@@ -44,23 +48,18 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use tokio::pin;
     use tokio::select;
 
     use super::*;
 
-    #[tokio::test]
+    #[tokio::test(flavor = "current_thread")]
     pub async fn test_add_watch() {
         let watch_id = "1157";
         let genre = "动画";
 
-        let sleep = tokio::time::sleep(std::time::Duration::from_secs(1600));
-
-        pin!(sleep);
-
         select! {
             _ = task(genre, watch_id) => {},
-            _ = sleep => {},
+            _ = sleep(Duration::from_millis(1600)) => {},
         }
     }
 }

@@ -1,9 +1,7 @@
 mod sync_video_list;
-mod watch_basic_genere;
-
-use dao::Dao;
+mod watch_basic_genre;
 
 #[tokio::main]
 pub async fn main() {
-    Dao::new().await.unwrap();
+    "Hello, world!";
 }
