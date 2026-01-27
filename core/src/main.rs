@@ -1,8 +1,9 @@
 mod sync_video_list;
+mod watch_basic_genere;
 
-use dao::VideoTable;
+use dao::Dao;
 
 #[tokio::main]
 pub async fn main() {
-    VideoTable::new().await.unwrap();
+    Dao::new().await.unwrap();
 }

@@ -6,7 +6,7 @@ use serde::de::DeserializeOwned;
 use tracing::instrument;
 
 pub mod video;
-mod watch;
+pub mod watch;
 
 pub struct EmosApi {
     pub client: Client,

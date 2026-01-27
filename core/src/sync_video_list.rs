@@ -1,11 +1,11 @@
 use anyhow::Result;
-use dao::VideoTable;
+use dao::Dao;
 use futures_util::StreamExt;
 use futures_util::pin_mut;
 use tracing::debug;
 
 pub async fn task() -> Result<()> {
-    let v = VideoTable::new().await?;
+    let v = Dao::new().await?;
 
     // fixme: it's not stable sort
     let stream = v.fetch_all_videos().await;

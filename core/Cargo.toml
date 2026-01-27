@@ -8,9 +8,12 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
-tokio.workspace = true
 dao.workspace = true
+emos_api.workspace = true
+
+tokio.workspace = true
 futures-util.workspace = true
+async-stream.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 anyhow.workspace = true
