@@ -1,0 +1,25 @@
+[package]
+name = "video_db"
+version = "0.1.0"
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+emos_api.workspace = true
+sqlx.workspace = true
+anyhow.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+tokio.workspace = true
+
+async-stream = "0"
+futures-util = "0"
+
+[dev-dependencies]
+emos_api = { workspace = true, features = ["test-verbose"] }
+
+[lints]
+workspace = true
