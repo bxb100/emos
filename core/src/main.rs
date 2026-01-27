@@ -1,4 +1,6 @@
-use video_db::VideoTable;
+mod sync_video_list;
+
+use dao::VideoTable;
 
 #[tokio::main]
 pub async fn main() {

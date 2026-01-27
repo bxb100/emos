@@ -6,8 +6,6 @@ use emos_api::video;
 use emos_api::video::list::Item;
 use emos_api::video::list::QueryParams;
 use futures_util::Stream;
-use futures_util::StreamExt;
-use futures_util::pin_mut;
 use sqlx::QueryBuilder;
 use sqlx::Sqlite;
 use sqlx::SqlitePool;
@@ -29,8 +27,7 @@ impl VideoTable {
             info!("Database already exists");
         }
         let db = SqlitePool::connect(db_url).await?;
-        let migrations =
-            Path::new(env!("CARGO_WORKSPACE_DIR")).join("./crates/video_db/migrations");
+        let migrations = Path::new(env!("CARGO_WORKSPACE_DIR")).join("./crates/dao/migrations");
         debug!("{migrations:?}");
 
         sqlx::migrate::Migrator::new(migrations)
@@ -41,25 +38,14 @@ impl VideoTable {
         Ok(Self(db))
     }
 
-    async fn insert(&self, items: Vec<emos_api::video::list::Item>) -> anyhow::Result<()> {
-        let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
-            "INSERT INTO video (todb_id, tmdb_id, video_id, video_type, video_title, genres) ",
-        );
-
-        let need_filter_ids = self
-            .exist_todb_ids(items.iter().map(|item| item.todb_id).collect())
-            .await?;
-
-        let items = items
-            .into_iter()
-            .filter(|item| !need_filter_ids.contains(&item.todb_id))
-            .collect::<Vec<_>>();
-
-        debug!("exist {}, filtered: {}", need_filter_ids.len(), items.len());
-
+    pub async fn insert(&self, items: Vec<emos_api::video::list::Item>) -> anyhow::Result<()> {
         if items.is_empty() {
             return Ok(());
         }
+
+        let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
+            "INSERT INTO video (todb_id, tmdb_id, video_id, video_type, video_title, genres) ",
+        );
 
         query_builder.push_values(items, |mut b, item| {
             b.push_bind(item.todb_id)
@@ -76,7 +62,7 @@ impl VideoTable {
         Ok(())
     }
 
-    async fn exist_todb_ids(&self, todb_ids: Vec<i64>) -> anyhow::Result<Vec<i64>> {
+    pub async fn exist_todb_ids(&self, todb_ids: Vec<i64>) -> anyhow::Result<Vec<i64>> {
         let id_str = todb_ids
             .iter()
             .map(ToString::to_string)
@@ -92,7 +78,7 @@ impl VideoTable {
         .map_err(Into::into)
     }
 
-    async fn fetch_all_videos(&self) -> impl Stream<Item = Result<Vec<Item>>> {
+    pub async fn fetch_all_videos(&self) -> impl Stream<Item = Result<Vec<Item>>> {
         let page_size = 100;
 
         stream! {
@@ -124,18 +110,6 @@ impl VideoTable {
             }
         }
     }
-
-    pub async fn task(&self) -> Result<()> {
-        let stream = self.fetch_all_videos().await;
-        pin_mut!(stream);
-
-        while let Some(items) = stream.next().await {
-            let items = items?;
-            self.insert(items).await?;
-        }
-
-        Ok(())
-    }
 }
 
 #[cfg(test)]
@@ -150,8 +124,7 @@ mod tests {
             .with_max_level(Level::DEBUG)
             .init();
 
-        let v = VideoTable::new().await?;
-        v.task().await?;
+        let _ = VideoTable::new().await?;
         Ok(())
     }
 }

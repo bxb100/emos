@@ -9,7 +9,11 @@ license.workspace = true
 
 [dependencies]
 tokio.workspace = true
-video_db.workspace = true
+dao.workspace = true
+futures-util.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+anyhow.workspace = true
 
 [lints]
 workspace = true

@@ -1,5 +1,5 @@
 [package]
-name = "video_db"
+name = "dao"
 version = "0.1.0"
 edition.workspace = true
 homepage.workspace = true
@@ -15,8 +15,8 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
 
-async-stream = "0"
-futures-util = "0"
+async-stream.workspace = true
+futures-util.workspace = true
 
 [dev-dependencies]
 emos_api = { workspace = true, features = ["test-verbose"] }
