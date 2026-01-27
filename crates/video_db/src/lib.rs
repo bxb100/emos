@@ -67,7 +67,7 @@ impl VideoTable {
                 .push_bind(item.video_id)
                 .push_bind(item.video_type)
                 .push_bind(item.video_title)
-                .push_bind(Json(item.genres)); // 序列化 JSON 存入 TEXT 字段
+                .push_bind(Json(item.genres));
         });
 
         let query = query_builder.build();
