@@ -107,7 +107,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_search_multi() -> anyhow::Result<()> {
-        let api = TmdbApi::new();
+        let api = TmdbApi::new()?;
         let result = api.search_multi("Inception", None).await?;
         println!("Found {} results", result.total_results);
         for item in result.results {
