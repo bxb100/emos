@@ -16,7 +16,6 @@ anyhow.workspace = true
 dotenv_codegen.workspace = true
 serde_with.workspace = true
 tracing.workspace = true
-
 serde_path_to_error = { workspace = true, optional = true }
 
 [features]

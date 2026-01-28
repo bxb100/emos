@@ -1,5 +1,13 @@
 [workspace]
-members = ["core", "crates/douban", "crates/emos_api", "crates/dao", "xtask"]
+members = [
+  "core",
+  "crates/douban",
+  "crates/emos_api",
+  "crates/dao",
+  "crates/utils",
+  "crates/bangumi_api",
+  "xtask",
+]
 resolver = "3"
 
 [workspace.package]
@@ -13,7 +21,9 @@ license = "MIT"
 # memebers
 emos_api = { path = "crates/emos_api" }
 douban_api = { path = "crates/douban" }
+bangumi_api = { path = "crates/bangumi_api" }
 dao = { path = "crates/dao" }
+utils = { path = "crates/utils" }
 
 # others
 reqwest = { version = "0.13", features = ["json", "cookies", "query", "form"] }
@@ -21,6 +31,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "3.16"
 serde_path_to_error = "0.1"
+serde_repr = "0.1"
 tokio = { version = "1", features = ["full"] }
 chrono = "0.4"
 base64 = "0.22"

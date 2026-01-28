@@ -16,10 +16,11 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
         let mut max_todb_id:i64 = -1;
         loop {
             let videos: Vec<Video> = dao.find_all_by_genre(max_todb_id, genre).await?;
-            if videos.is_empty() {
-                break;
-            }
-            max_todb_id = videos.iter().map(|video| video.todb_id).max().unwrap();
+
+            match videos.last() {
+                None => break,
+                Some(v) => max_todb_id = v.todb_id,
+            };
 
             yield anyhow::Ok(videos);
         }
@@ -30,7 +31,7 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
     let emos_api = emos_api::EmosApi::new()?;
     while let Some(Ok(value)) = s.next().await {
         info!("fetch {} videos", value.len());
-        let req = value
+        let params = value
             .into_iter()
             .map(|v| UpdateWatchVideoBatchItem {
                 r#type: BatchType::Todb,
@@ -38,7 +39,7 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
             })
             .collect::<Vec<_>>();
 
-        emos_api.batch_update_watch_videos(watch_id, req).await?;
+        emos_api.batch_update_watch_videos(watch_id, params).await?;
 
         sleep(Duration::from_secs(10)).await;
     }

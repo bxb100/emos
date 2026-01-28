@@ -9,12 +9,13 @@ license.workspace = true
 
 [dependencies]
 emos_api.workspace = true
+utils.workspace = true
+
 sqlx.workspace = true
 anyhow.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 tokio.workspace = true
-
 async-stream.workspace = true
 futures-util.workspace = true
 serde.workspace = true
