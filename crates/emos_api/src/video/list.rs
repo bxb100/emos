@@ -1,10 +1,11 @@
+use anyhow::Context;
 use anyhow::Result;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::instrument;
+use utils::ReqwestExt;
 
 pub use crate::EmosApi;
-use crate::ResponseExt;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct Root {
@@ -78,13 +79,12 @@ impl EmosApi {
         page_size = query.page_size,
     ))]
     pub async fn search(&self, query: &QueryParams<'_>) -> Result<Root> {
-        self.client
+        let req = self
+            .client
             .get(format!("{}/api/video/search", self.base_url))
-            .query(&query)
-            .send()
-            .await?
-            .json_ext::<Root>()
-            .await
+            .query(&query);
+
+        req.execute().await.context("Failed to search videos")
     }
 }
 

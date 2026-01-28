@@ -2,8 +2,13 @@ pub mod model;
 
 use anyhow::Context;
 use dotenv_codegen::dotenv;
-use reqwest::{Client, header};
-use model::{PagedResult, MediaItem, Movie, Tv};
+use model::MediaItem;
+use model::Movie;
+use model::PagedResult;
+use model::Tv;
+use reqwest::Client;
+use reqwest::header;
+use utils::ReqwestExt;
 
 const BASE_URL: &str = "https://api.themoviedb.org/3";
 
@@ -14,9 +19,10 @@ pub struct TmdbApi {
 
 impl Default for TmdbApi {
     fn default() -> Self {
-        Self::new().expect("Failed to create default TmdbApi client. Ensure TMDB_ACCESS_TOKEN is set and valid.")
+        Self::new().expect(
+            "Failed to create default TmdbApi client. Ensure TMDB_ACCESS_TOKEN is set and valid.",
+        )
     }
-}
 }
 
 impl TmdbApi {
@@ -39,7 +45,11 @@ impl TmdbApi {
         })
     }
 
-    pub async fn search_multi(&self, query: &str, page: Option<u64>) -> anyhow::Result<PagedResult<MediaItem>> {
+    pub async fn search_multi(
+        &self,
+        query: &str,
+        page: Option<u64>,
+    ) -> anyhow::Result<PagedResult<MediaItem>> {
         let url = format!("{}/search/multi", self.base_url);
         let mut request = self.client.get(&url).query(&[("query", query)]);
 
@@ -47,15 +57,10 @@ impl TmdbApi {
             request = request.query(&[("page", p)]);
         }
 
-        let resp = request.send().await.context("Failed to send search_multi request")?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            anyhow::bail!("TMDB API error: {} - {}", status, text);
-        }
-
-        let result = resp.json().await.context("Failed to parse search_multi response")?;
+        let result = request
+            .execute()
+            .await
+            .context("Failed to parse search_multi response")?;
         Ok(result)
     }
 
@@ -67,15 +72,10 @@ impl TmdbApi {
             request = request.query(&[("page", p)]);
         }
 
-        let resp = request.send().await.context("Failed to send movie_popular request")?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            anyhow::bail!("TMDB API error: {} - {}", status, text);
-        }
-
-        let result = resp.json().await.context("Failed to parse movie_popular response")?;
+        let result = request
+            .execute()
+            .await
+            .context("Failed to parse movie_popular response")?;
         Ok(result)
     }
 
@@ -87,15 +87,10 @@ impl TmdbApi {
             request = request.query(&[("page", p)]);
         }
 
-        let resp = request.send().await.context("Failed to send tv_popular request")?;
-
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            anyhow::bail!("TMDB API error: {} - {}", status, text);
-        }
-
-        let result = resp.json().await.context("Failed to parse tv_popular response")?;
+        let result = request
+            .execute()
+            .await
+            .context("Failed to parse tv_popular response")?;
         Ok(result)
     }
 }

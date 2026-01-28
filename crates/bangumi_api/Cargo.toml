@@ -8,6 +8,8 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
+utils.workspace = true
+
 reqwest.workspace = true
 serde.workspace = true
 serde_with.workspace = true
@@ -15,6 +17,9 @@ tokio.workspace = true
 anyhow.workspace = true
 serde_repr.workspace = true
 dotenv_codegen.workspace = true
+
+[dev-dependencies]
+utils = { workspace = true, features = ["test-verbose"] }
 
 [lints]
 workspace = true

@@ -20,8 +20,5 @@ async-stream.workspace = true
 futures-util.workspace = true
 serde.workspace = true
 
-[dev-dependencies]
-emos_api = { workspace = true, features = ["test-verbose"] }
-
 [lints]
 workspace = true

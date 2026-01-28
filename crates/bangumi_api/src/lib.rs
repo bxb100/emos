@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use anyhow::bail;
+use anyhow::Context;
 use dotenv_codegen::dotenv;
 use reqwest::Client;
 use reqwest::header;
@@ -8,6 +8,7 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
+use utils::ReqwestExt;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde_with::skip_serializing_none]
@@ -184,22 +185,9 @@ impl BangumiApi {
         .flatten()
         .collect();
 
-        let resp = self
-            .client
-            .post(&url)
-            .query(&query_params)
-            .json(&request)
-            .send()
-            .await?;
+        let req = self.client.post(&url).query(&query_params).json(&request);
 
-        if !resp.status().is_success() {
-            let status = resp.status();
-            let text = resp.text().await.unwrap_or_default();
-            bail!("API request failed: {} - {}", status, text);
-        }
-
-        let paged_subject: PagedSubject = resp.json().await?;
-        Ok(paged_subject)
+        req.execute().await.context("Failed to search subjects")
     }
 
     pub async fn search_top_rank_500(

@@ -9,6 +9,19 @@ license.workspace = true
 
 [dependencies]
 anyhow.workspace = true
+reqwest.workspace = true
+tracing.workspace = true
+serde.workspace = true
+serde_json = { workspace = true, optional = true }
+serde_path_to_error = { workspace = true, optional = true }
+
+[features]
+default = []
+test-verbose = ["dep:serde_path_to_error", "dep:serde_json"]
+
+[dev-dependencies]
+serde_json.workspace = true
+serde_path_to_error.workspace = true
 
 [lints]
 workspace = true

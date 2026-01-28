@@ -18,8 +18,5 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 anyhow.workspace = true
 
-[dev-dependencies]
-emos_api = { workspace = true, features = ["test-verbose"] }
-
 [lints]
 workspace = true
