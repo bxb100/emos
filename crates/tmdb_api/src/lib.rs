@@ -14,8 +14,9 @@ pub struct TmdbApi {
 
 impl Default for TmdbApi {
     fn default() -> Self {
-        Self::new()
+        Self::new().expect("Failed to create default TmdbApi client. Ensure TMDB_ACCESS_TOKEN is set and valid.")
     }
+}
 }
 
 impl TmdbApi {
