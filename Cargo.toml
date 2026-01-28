@@ -29,6 +29,7 @@ serde = { version = "1.0", features = ["derive"] }
 serde_json = "1.0"
 serde_with = "3.16"
 serde_path_to_error = "0.1"
+serde_repr = "0.1"
 tokio = { version = "1", features = ["full"] }
 chrono = "0.4"
 base64 = "0.22"
@@ -54,6 +55,7 @@ sqlx = { version = "0.8", features = [
 
 async-stream = "0"
 futures-util = "0"
+
 
 [workspace.lints.rust]
 unknown_lints = "deny"

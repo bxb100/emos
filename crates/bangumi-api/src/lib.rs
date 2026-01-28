@@ -1,16 +1,18 @@
 use std::collections::HashMap;
-
+use anyhow::bail;
+use dotenv_codegen::dotenv;
 use reqwest::Client;
 use reqwest::header;
-use serde::{Deserialize, Serialize};
-use serde_repr::{Deserialize_repr, Serialize_repr};
+use serde::Deserialize;
+use serde::Serialize;
+use serde_repr::Deserialize_repr;
+use serde_repr::Serialize_repr;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Default)]
+#[serde_with::skip_serializing_none]
 pub struct SearchRequest {
     pub keyword: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub sort: Option<SearchSort>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub filter: Option<SearchFilter>,
 }
 
@@ -24,22 +26,16 @@ pub enum SearchSort {
 }
 
 #[derive(Debug, Serialize, Deserialize, Default)]
+#[serde_with::skip_serializing_none]
 pub struct SearchFilter {
-    #[serde(rename = "type", skip_serializing_if = "Option::is_none")]
+    #[serde(rename = "type")]
     pub subject_type: Option<Vec<SubjectType>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub tag: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub air_date: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub rating: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub rating_count: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub rank: Option<Vec<String>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub nsfw: Option<bool>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub meta_tags: Option<Vec<String>>,
 }
 
@@ -144,9 +140,20 @@ pub struct BangumiApi {
     base_url: String,
 }
 
+pub const DEFAULT_BASE_URL: &str = "https://api.bgm.tv";
+
 impl BangumiApi {
     pub fn new() -> anyhow::Result<Self> {
-        let headers = header::HeaderMap::new();
+        Self::with_url(DEFAULT_BASE_URL)
+    }
+
+    pub fn with_url(base_url: &str) -> anyhow::Result<Self> {
+        let mut headers = header::HeaderMap::new();
+        let access_token = format!("Bearer {}", dotenv!("BANGUMI_ACCESS_TOKEN"));
+        let mut value = header::HeaderValue::from_str(&access_token)?;
+        value.set_sensitive(true);
+        headers.insert(header::AUTHORIZATION, value);
+
         // Bangumi API requires User-Agent
         // Using a default one here.
         let client = Client::builder()
@@ -156,7 +163,7 @@ impl BangumiApi {
 
         Ok(Self {
             client,
-            base_url: "https://api.bgm.tv".to_string(),
+            base_url: base_url.to_string(),
         })
     }
 
@@ -187,11 +194,31 @@ impl BangumiApi {
         if !resp.status().is_success() {
             let status = resp.status();
             let text = resp.text().await.unwrap_or_default();
-            return Err(anyhow::anyhow!("API request failed: {} - {}", status, text));
+            bail!("API request failed: {} - {}", status, text);
         }
 
         let paged_subject: PagedSubject = resp.json().await?;
         Ok(paged_subject)
+    }
+
+    pub async fn search_top_rank_500(
+        &self,
+        keyword: &str,
+        limit: Option<u64>,
+        offset: Option<u64>,
+    ) -> anyhow::Result<PagedSubject> {
+        let request = SearchRequest {
+            keyword: keyword.to_string(),
+            sort: Some(SearchSort::Rank),
+            filter: Some(SearchFilter {
+                subject_type: Some(vec![SubjectType::Anime]),
+                // batch video with 0 rank
+                rank: Some(vec![">0".to_string(), "<=500".to_string()]),
+                ..Default::default()
+            }),
+        };
+
+        self.search_subjects(request, limit, offset).await
     }
 }
 
@@ -202,24 +229,8 @@ mod tests {
     #[tokio::test]
     async fn test_search_subjects() -> anyhow::Result<()> {
         let api = BangumiApi::new()?;
-        let request = SearchRequest {
-            keyword: "Cowboy Bebop".to_string(),
-            sort: None,
-            filter: Some(SearchFilter {
-                subject_type: Some(vec![SubjectType::Anime]),
-                ..Default::default()
-            }),
-        };
-
-        let result = api.search_subjects(request, Some(10), None).await?;
-        println!("Found {} results", result.total);
-        if let Some(subject) = result.data.first() {
-            println!("First result: {} ({})", subject.name, subject.name_cn);
-            println!("Summary: {}", subject.summary);
-            println!("Rating: {}", subject.rating.score);
-        }
-
-        assert!(result.total > 0);
+        let result = api.search_top_rank_500("", Some(10), Some(0)).await?;
+        println!("{:#?}", result);
         Ok(())
     }
 }
