@@ -6,6 +6,7 @@ members = [
   "crates/dao",
   "crates/utils",
   "crates/bangumi_api",
+  "crates/tmdb_api",
   "xtask",
 ]
 resolver = "3"
@@ -22,6 +23,7 @@ license = "MIT"
 emos_api = { path = "crates/emos_api" }
 douban_api = { path = "crates/douban" }
 bangumi_api = { path = "crates/bangumi_api" }
+tmdb_api = { path = "crates/tmdb_api" }
 dao = { path = "crates/dao" }
 utils = { path = "crates/utils" }
 
