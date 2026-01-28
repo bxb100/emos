@@ -1,5 +1,6 @@
 use anyhow::Result;
 use async_stream::stream;
+use std::fmt::Write;
 use emos_api::video;
 use emos_api::video::list::Item;
 use emos_api::video::list::QueryParams;
@@ -63,11 +64,13 @@ impl Dao {
     }
 
     pub async fn exist_todb_ids(&self, todb_ids: Vec<i64>) -> anyhow::Result<Vec<i64>> {
-        let id_str = todb_ids
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
+        let mut id_str = String::with_capacity(todb_ids.len() * 10);
+        for (i, id) in todb_ids.iter().enumerate() {
+            if i > 0 {
+                id_str.push(',');
+            }
+            write!(id_str, "{}", id)?;
+        }
 
         query_scalar(&format!(
             "select todb_id from video where todb_id in ({})",
@@ -123,6 +126,31 @@ mod tests {
         for video in videos {
             println!("{:#?}", video);
         }
+        Ok(())
+    }
+
+    #[tokio::test]
+    pub async fn test_exist_todb_ids() -> Result<()> {
+        let dao = Dao::new().await?;
+        let test_id = 999999;
+        let item = Item {
+            todb_id: test_id,
+            tmdb_id: 1,
+            video_id: 1,
+            video_type: "movie".to_string(),
+            video_title: "Test Video".to_string(),
+            genres: vec![],
+            ..Default::default()
+        };
+
+        // Ensure clean state or just ignore insert error if exists (for repeated runs)
+        // Since we don't have a clear delete/clean, we try to insert.
+        // If it fails due to PK, we assume it's there.
+        let _ = dao.insert(vec![item]).await;
+
+        let found = dao.exist_todb_ids(vec![test_id]).await?;
+        assert!(found.contains(&test_id));
+
         Ok(())
     }
 }
