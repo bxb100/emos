@@ -1,7 +1,6 @@
 use anyhow::Result;
 use async_stream::stream;
 use emos_api::video;
-use emos_api::video::list::Item;
 use emos_api::video::list::QueryParams;
 use futures_util::Stream;
 use serde::Deserialize;
@@ -10,6 +9,7 @@ use sqlx::Sqlite;
 use sqlx::query_as;
 use sqlx::query_scalar;
 use sqlx::types::Json;
+use utils::SqlInClause;
 
 use crate::Dao;
 
@@ -18,9 +18,9 @@ pub struct Video {
     pub todb_id: i64,
     pub tmdb_id: i64,
     pub video_id: i64,
-    video_type: Option<String>,
-    video_title: Option<String>,
-    genres: Option<String>,
+    pub video_type: Option<String>,
+    pub video_title: Option<String>,
+    pub genres: Option<String>,
 }
 
 impl Dao {
@@ -38,7 +38,7 @@ impl Dao {
         Ok(data)
     }
 
-    pub async fn insert(&self, items: Vec<emos_api::video::list::Item>) -> anyhow::Result<()> {
+    pub async fn insert(&self, items: Vec<video::list::Item>) -> Result<()> {
         if items.is_empty() {
             return Ok(());
         }
@@ -62,23 +62,18 @@ impl Dao {
         Ok(())
     }
 
-    pub async fn exist_todb_ids(&self, todb_ids: Vec<i64>) -> anyhow::Result<Vec<i64>> {
-        let id_str = todb_ids
-            .iter()
-            .map(ToString::to_string)
-            .collect::<Vec<_>>()
-            .join(",");
-
+    pub async fn exist_todb_ids(&self, todb_ids: Vec<i64>) -> Result<Vec<i64>> {
+        let id_str = todb_ids.to_sql_in_clause()?;
+        // https://github.com/launchbadge/sqlx/blob/main/FAQ.md#how-can-i-do-a-select--where-foo-in--query
         query_scalar(&format!(
-            "select todb_id from video where todb_id in ({})",
-            id_str
+            "select todb_id from video where todb_id in ({id_str})"
         ))
         .fetch_all(&self.0)
         .await
         .map_err(Into::into)
     }
 
-    pub async fn fetch_all_videos(&self) -> impl Stream<Item = anyhow::Result<Vec<Item>>> {
+    pub async fn fetch_all_videos(&self) -> impl Stream<Item = Result<Vec<video::list::Item>>> {
         let page_size = 100;
 
         stream! {
@@ -86,7 +81,7 @@ impl Dao {
             let mut page = 1;
 
             loop {
-                let resp = api.list(&QueryParams {
+                let resp = api.search(&QueryParams {
                     page: Some(page),
                     page_size: Some(page_size),
                     ..Default::default()
@@ -106,7 +101,7 @@ impl Dao {
 
                 page += 1;
 
-                tokio::time::sleep(std::time::Duration::from_millis(500)).await;
+                tokio::time::sleep(std::time::Duration::from_secs(1)).await;
             }
         }
     }

@@ -1,5 +1,12 @@
 [workspace]
-members = ["core", "crates/douban", "crates/emos_api", "crates/dao", "xtask"]
+members = [
+  "core",
+  "crates/douban",
+  "crates/emos_api",
+  "crates/dao",
+  "xtask",
+  "crates/utils",
+]
 resolver = "3"
 
 [workspace.package]
@@ -14,6 +21,7 @@ license = "MIT"
 emos_api = { path = "crates/emos_api" }
 douban_api = { path = "crates/douban" }
 dao = { path = "crates/dao" }
+utils = { path = "crates/utils" }
 
 # others
 reqwest = { version = "0.13", features = ["json", "cookies", "query", "form"] }

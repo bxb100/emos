@@ -1,7 +1,6 @@
 use anyhow::Result;
 use serde::Deserialize;
 use serde::Serialize;
-use serde_json::Value;
 use tracing::instrument;
 
 pub use crate::EmosApi;
@@ -16,31 +15,19 @@ pub struct Root {
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(rename_all = "camelCase")]
 pub struct Item {
-    pub item_id: Option<String>,
-    pub todb_id: i64,
-    pub tmdb_id: i64,
-    pub tmdb_url: String,
+    #[serde(rename = "video_id")]
     pub video_id: i64,
+    #[serde(rename = "video_type")]
     pub video_type: String,
+    #[serde(rename = "video_title")]
     pub video_title: String,
-    pub video_origin_title: String,
-    pub video_description: Option<String>,
-    pub video_tagline: Option<String>,
-    pub video_image_logo: Option<String>,
-    pub video_image_poster: Option<String>,
-    pub video_image_backdrop: Option<String>,
-    pub video_date_air: Option<String>,
-    pub video_is_adult: bool,
-    pub seek_is_request: bool,
-    pub seek_id: Value,
-    pub request_count: i64,
-    pub parts_count: i64,
-    pub medias_count: i64,
-    pub subtitles_count: i64,
-    pub titles: Vec<String>,
+    #[serde(rename = "todb_id")]
+    pub todb_id: i64,
+    #[serde(rename = "tmdb_id")]
+    pub tmdb_id: i64,
     pub genres: Vec<Genre>,
-    pub is_delete: bool,
 }
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -49,20 +36,35 @@ pub struct Genre {
     pub name: String,
 }
 
-#[derive(Debug, Default, Serialize)]
+#[derive(Debug, Serialize)]
 #[serde_with::skip_serializing_none]
-pub struct QueryParams {
-    pub tmdb_id: Option<String>,
-    pub todb_id: Option<String>,
-    pub video_id: Option<String>,
+pub struct QueryParams<'a> {
+    pub tmdb_id: Option<&'a str>,
+    pub todb_id: Option<&'a str>,
+    pub video_id: Option<&'a str>,
     // tv/movie
-    pub r#type: Option<String>,
+    pub r#type: Option<&'a str>,
     // 0, 1
-    pub only_delete: Option<u8>,
-    pub with_media: Option<u8>,
+    pub with_genre: Option<u8>,
+    pub sort_by: Option<&'a str>,
     // 1-based
     pub page: Option<u32>,
     pub page_size: Option<u32>,
+}
+
+impl Default for QueryParams<'_> {
+    fn default() -> Self {
+        Self {
+            tmdb_id: None,
+            todb_id: None,
+            video_id: None,
+            r#type: None,
+            with_genre: Some(1),
+            sort_by: Some("id"),
+            page: Some(1),
+            page_size: Some(20),
+        }
+    }
 }
 
 impl EmosApi {
@@ -71,14 +73,13 @@ impl EmosApi {
         todb_id = query.todb_id,
         video_id = query.video_id,
         type = query.r#type,
-        only_delete = query.only_delete,
-        with_media = query.with_media,
+        with_genre = query.with_genre,
         page = query.page,
         page_size = query.page_size,
     ))]
-    pub async fn list(&self, query: &QueryParams) -> Result<Root> {
+    pub async fn search(&self, query: &QueryParams<'_>) -> Result<Root> {
         self.client
-            .get(format!("{}/api/video/list", self.base_url))
+            .get(format!("{}/api/video/search", self.base_url))
             .query(&query)
             .send()
             .await?
@@ -98,11 +99,8 @@ mod tests {
         tracing_subscriber::fmt().init();
 
         let data = EmosApi::new()?
-            .list(&QueryParams {
-                r#type: Some("tv".to_string()),
-                with_media: Some(1),
-                page: Some(1),
-                page_size: Some(100),
+            .search(&QueryParams {
+                r#type: Some("tv"),
                 ..Default::default()
             })
             .await?;
