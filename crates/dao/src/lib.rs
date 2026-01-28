@@ -4,11 +4,12 @@ use std::path::Path;
 
 use sqlx::Sqlite;
 use sqlx::SqlitePool;
+use sqlx::migrate;
 use sqlx::migrate::MigrateDatabase;
 use tracing::debug;
 use tracing::info;
 
-pub struct Dao(sqlx::SqlitePool);
+pub struct Dao(SqlitePool);
 
 impl Dao {
     pub async fn new() -> anyhow::Result<Self> {
@@ -20,13 +21,10 @@ impl Dao {
             info!("Database already exists");
         }
         let db = SqlitePool::connect(db_url).await?;
-        let migrations = Path::new(env!("CARGO_WORKSPACE_DIR")).join("./crates/dao/migrations");
+        let migrations = Path::new(env!("MIGRATIONS_DIR"));
         debug!("{migrations:?}");
 
-        sqlx::migrate::Migrator::new(migrations)
-            .await?
-            .run(&db)
-            .await?;
+        migrate::Migrator::new(migrations).await?.run(&db).await?;
 
         Ok(Self(db))
     }

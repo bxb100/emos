@@ -1,5 +1,4 @@
-mod sync_video_list;
-mod watch_basic_genre;
+mod task;
 
 #[tokio::main]
 pub async fn main() {

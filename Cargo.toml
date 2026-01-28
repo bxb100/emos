@@ -4,6 +4,7 @@ members = [
   "crates/douban",
   "crates/emos_api",
   "crates/dao",
+  "crates/utils",
   "crates/bangumi-api",
   "xtask",
 ]
@@ -22,6 +23,7 @@ emos_api = { path = "crates/emos_api" }
 douban_api = { path = "crates/douban" }
 bangumi-api = { path = "crates/bangumi-api" }
 dao = { path = "crates/dao" }
+utils = { path = "crates/utils" }
 
 # others
 reqwest = { version = "0.13", features = ["json", "cookies", "query", "form"] }
@@ -55,7 +57,6 @@ sqlx = { version = "0.8", features = [
 
 async-stream = "0"
 futures-util = "0"
-
 
 [workspace.lints.rust]
 unknown_lints = "deny"
