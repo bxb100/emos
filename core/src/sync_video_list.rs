@@ -28,10 +28,8 @@ pub async fn task() -> Result<()> {
             break;
         }
 
-        let items = items
-            .into_iter()
-            .filter(|item| !need_filter_ids.contains(&item.todb_id))
-            .collect::<Vec<_>>();
+        let mut items = items;
+        items.retain(|item| !need_filter_ids.contains(&item.todb_id));
 
         v.insert(items).await?;
     }
