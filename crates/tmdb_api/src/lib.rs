@@ -123,7 +123,7 @@ mod tests {
     #[tokio::test]
     #[ignore]
     async fn test_movie_popular() -> anyhow::Result<()> {
-        let api = TmdbApi::new();
+        let api = TmdbApi::new()?;
         let result = api.movie_popular(None).await?;
         println!("Found {} popular movies", result.results.len());
         assert!(!result.results.is_empty());
