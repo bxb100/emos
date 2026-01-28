@@ -19,23 +19,23 @@ impl Default for TmdbApi {
 }
 
 impl TmdbApi {
-    pub fn new() -> Self {
+    pub fn new() -> anyhow::Result<Self> {
         let token = dotenv!("TMDB_ACCESS_TOKEN");
         let mut headers = header::HeaderMap::new();
         let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {}", token))
-            .expect("Invalid TMDB_ACCESS_TOKEN format");
+            .context("Invalid TMDB_ACCESS_TOKEN format")?;
         auth_value.set_sensitive(true);
         headers.insert(header::AUTHORIZATION, auth_value);
 
         let client = Client::builder()
             .default_headers(headers)
             .build()
-            .expect("Failed to build reqwest client");
+            .context("Failed to build reqwest client")?;
 
-        Self {
+        Ok(Self {
             client,
             base_url: BASE_URL.to_string(),
-        }
+        })
     }
 
     pub async fn search_multi(&self, query: &str, page: Option<u64>) -> anyhow::Result<PagedResult<MediaItem>> {
