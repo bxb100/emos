@@ -19,7 +19,7 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
             if videos.is_empty() {
                 break;
             }
-            max_todb_id = videos.iter().map(|video| video.todb_id).max().unwrap();
+            max_todb_id = videos.last().unwrap().todb_id;
 
             yield anyhow::Ok(videos);
         }
