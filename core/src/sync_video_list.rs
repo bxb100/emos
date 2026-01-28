@@ -1,3 +1,5 @@
+use std::collections::HashSet;
+
 use anyhow::Result;
 use dao::Dao;
 use futures_util::StreamExt;
@@ -27,6 +29,8 @@ pub async fn task() -> Result<()> {
         if need_filter_ids.len() == items.len() {
             break;
         }
+
+        let need_filter_ids: HashSet<_> = need_filter_ids.into_iter().collect();
 
         let items = items
             .into_iter()
