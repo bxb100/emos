@@ -1,0 +1,17 @@
+[package]
+name = "tmdb_api"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+reqwest = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+anyhow = { workspace = true }
+dotenv = { workspace = true }
+dotenv_codegen = { workspace = true }
+serde_repr = { workspace = true }
+serde_with = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true }
