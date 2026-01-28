@@ -16,7 +16,7 @@ pub async fn task() -> Result<()> {
         let mut items = items?;
         // advance-mod
         let need_filter_ids = dao
-            .exist_todb_ids(items.iter().map(|item| item.todb_id).collect())
+            .exist_todb_ids(items.iter().map(|item| item.todb_id))
             .await?;
 
         debug!(

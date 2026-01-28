@@ -62,7 +62,7 @@ impl Dao {
         Ok(())
     }
 
-    pub async fn exist_todb_ids(&self, todb_ids: Vec<i64>) -> Result<Vec<i64>> {
+    pub async fn exist_todb_ids(&self, todb_ids: impl IntoIterator<Item = i64>) -> Result<Vec<i64>> {
         let id_str = todb_ids.to_sql_in_clause()?;
         // https://github.com/launchbadge/sqlx/blob/main/FAQ.md#how-can-i-do-a-select--where-foo-in--query
         query_scalar(&format!(
