@@ -17,6 +17,9 @@ async-stream.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 anyhow.workspace = true
+clap.workspace = true
+
+inventory = "0.3"
 
 [lints]
 workspace = true

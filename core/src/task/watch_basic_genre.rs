@@ -1,5 +1,7 @@
+use anyhow::Context;
 use anyhow::Result;
 use async_stream::stream;
+use clap::ArgMatches;
 use dao::Dao;
 use dao::video::Video;
 use emos_api::watch::BatchType;
@@ -10,12 +12,22 @@ use tokio::time::Duration;
 use tokio::time::sleep;
 use tracing::info;
 
-pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
+use crate::Task;
+use crate::add_task;
+
+add_task!(
+    "watch_basic_genre",
+    task,
+    genre: String = "genre",
+    watch_id: String = "watch_id"
+);
+
+pub async fn task(genre: String, watch_id: String) -> Result<()> {
     let dao = Dao::new().await?;
     let s = stream! {
         let mut max_todb_id:i64 = -1;
         loop {
-            let videos: Vec<Video> = dao.find_all_by_genre(max_todb_id, genre).await?;
+            let videos: Vec<Video> = dao.find_all_by_genre(max_todb_id, &genre, 500).await?;
 
             match videos.last() {
                 None => break,
@@ -39,7 +51,9 @@ pub async fn task(genre: &str, watch_id: &str) -> Result<()> {
             })
             .collect::<Vec<_>>();
 
-        emos_api.batch_update_watch_videos(watch_id, params).await?;
+        emos_api
+            .batch_update_watch_videos(&watch_id, params)
+            .await?;
 
         sleep(Duration::from_secs(10)).await;
     }
@@ -55,8 +69,8 @@ mod tests {
 
     #[tokio::test(flavor = "current_thread")]
     pub async fn test_add_watch() {
-        let watch_id = "1157";
-        let genre = "动画";
+        let watch_id = "1157".to_owned();
+        let genre = "动画".to_owned();
 
         select! {
             _ = task(genre, watch_id) => {},
