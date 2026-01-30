@@ -15,6 +15,7 @@ pub enum MediaItem {
     Movie(Movie),
     Tv(Tv),
     Person(Person),
+    Collection,
 }
 
 #[derive(Debug, Serialize, Deserialize)]

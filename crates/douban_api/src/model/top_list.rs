@@ -17,19 +17,15 @@ pub struct TopList {
 pub struct SubjectCollectionItem {
     #[serde(rename = "card_subtitle")]
     pub card_subtitle: String,
-    pub comment: String,
-    #[serde(rename = "episodes_info")]
-    pub episodes_info: String,
     #[serde(rename = "has_linewatch")]
     pub has_linewatch: bool,
     pub id: String,
     pub interest: Value,
-    pub tags: Vec<Value>,
     pub title: String,
     #[serde(rename = "type")]
     pub type_field: String,
     pub uri: String,
-    pub year: String,
+    pub year: Option<String>,
 }
 
 #[cfg(test)]

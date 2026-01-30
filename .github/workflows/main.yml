@@ -1,0 +1,29 @@
+name: Emos Utils
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 0 * * *'
+
+jobs:
+  run-task:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Install Rust toolchain
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Rust Cache
+        uses: swatinem/rust-cache@v2
+        with:
+          shared-key: "foreign-tv-cache"
+
+      - name: Build and Run
+        env:
+          WATCH_ID: ${{ secrets.WATCH_ID }}
+          DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
+        run: |
+          cargo run --release -- watch_foreign_tv --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"

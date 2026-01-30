@@ -110,6 +110,7 @@ mod tests {
                 MediaItem::Movie(m) => println!("Movie: {}", m.title),
                 MediaItem::Tv(t) => println!("TV: {}", t.name),
                 MediaItem::Person(p) => println!("Person: {}", p.name),
+                _ => {}
             }
         }
         Ok(())
@@ -119,7 +120,7 @@ mod tests {
     #[ignore]
     async fn test_movie_popular() -> anyhow::Result<()> {
         let api = TmdbApi::new()?;
-        let result = api.movie_popular(None).await?;
+        let result = api.movie_popular(Some(1)).await?;
         println!("Found {} popular movies", result.results.len());
         assert!(!result.results.is_empty());
         Ok(())

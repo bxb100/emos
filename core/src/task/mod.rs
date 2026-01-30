@@ -4,7 +4,6 @@ use clap::ArgMatches;
 
 pub(crate) mod sync_video_list;
 pub(crate) mod watch_basic_genre;
-pub(crate) mod watch_db_video;
 pub(crate) mod watch_foreign_tv;
 
 pub type TaskFn = fn(&ArgMatches) -> Pin<Box<dyn Future<Output = ()> + Send>>;
