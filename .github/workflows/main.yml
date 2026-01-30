@@ -21,9 +21,17 @@ jobs:
         with:
           shared-key: "foreign-tv-cache"
 
+      - name: Gen EnvFile
+        run: |
+          echo "EMOS_TOKEN=${{ secrets.EMOS_TOKEN }}" >> .env
+          echo "EMOS_API_URL=${{ secrets.EMOS_API_URL }}" >> .env
+          echo "BANGUMI_ACCESS_TOKEN=${{ secrets.BANGUMI_ACCESS_TOKEN }}" >> .env
+          echo "TMDB_ACCESS_TOKEN=${{ secrets.TMDB_ACCESS_TOKEN }}" >> .env
+
       - name: Build and Run
         env:
           WATCH_ID: ${{ secrets.WATCH_ID }}
           DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
         run: |
           cargo run --release -- watch_foreign_tv --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
+          rm .env
