@@ -4,6 +4,13 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '0 0 * * *'
+  push:
+    paths:
+      - 'core/**'
+      - 'crates/**'
+
+permissions:
+  contents: write
 
 env:
   SQLX_OFFLINE: true
@@ -16,10 +23,32 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Check Release and Strategy
+        id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          RUN_BUILD="false"
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "Trigger is a push event. Forcing build and release update."
+            RUN_BUILD="true"
+          else
+            echo "Checking for existing release artifact..."
+            if gh release download latest -p emos-core --skip-existing; then
+              echo "Artifact downloaded successfully."
+            else
+              echo "Artifact download failed or release missing. Forcing build."
+              RUN_BUILD="true"
+            fi
+          fi
+          echo "run_build=$RUN_BUILD" >> $GITHUB_OUTPUT
+
       - name: Install Rust toolchain
+        if: steps.check.outputs.run_build == 'true'
         uses: dtolnay/rust-toolchain@stable
 
       - name: Rust Cache
+        if: steps.check.outputs.run_build == 'true'
         uses: swatinem/rust-cache@v2
         with:
           shared-key: "foreign-tv-cache"
@@ -31,10 +60,30 @@ jobs:
           echo "BANGUMI_ACCESS_TOKEN=${{ secrets.BANGUMI_ACCESS_TOKEN }}" >> .env
           echo "TMDB_ACCESS_TOKEN=${{ secrets.TMDB_ACCESS_TOKEN }}" >> .env
 
-      - name: Build and Run
+      - name: Build Core
+        if: steps.check.outputs.run_build == 'true'
+        run: |
+          cargo build --release
+          mv target/release/core ./emos-core
+
+      - name: Update Release
+        if: steps.check.outputs.run_build == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if gh release view latest > /dev/null 2>&1; then
+            echo "Release 'latest' exists. Uploading artifact..."
+            gh release upload latest emos-core --clobber
+          else
+            echo "Creating release 'latest'..."
+            gh release create latest emos-core --title "Latest Release" --notes "Auto-generated release for caching" --prerelease
+          fi
+
+      - name: Run Task
         env:
           WATCH_ID: ${{ secrets.WATCH_ID }}
           DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
         run: |
-          cargo run --release -- watch_foreign_tv --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
+          chmod +x emos-core
+          ./emos-core watch_foreign_tv --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
           rm .env
