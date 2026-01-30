@@ -1,3 +1,5 @@
+mod model;
+
 use std::collections::HashMap;
 
 use anyhow::Context;
@@ -8,12 +10,13 @@ use chrono::Local;
 use hmac::Hmac;
 use hmac::Mac;
 use once_cell::sync::Lazy;
-use rand::prelude::IndexedRandom;
+use rand::prelude::*;
 use reqwest::Client;
 use reqwest::Url;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use sha1::Sha1;
+use utils::ReqwestExt;
 
 // --- Constants ---
 const API_SECRET_KEY: &str = "bf7dddc7c9cfe6f7";
@@ -169,22 +172,15 @@ impl DoubanApi {
         params.insert("_ts".to_string(), ts);
         params.insert("_sig".to_string(), sig);
 
-        let ua = USER_AGENTS.choose(&mut rand::rng()).unwrap();
+        let ua = USER_AGENTS.choose(&mut thread_rng()).unwrap();
 
-        let resp = self
+        let req = self
             .client
             .get(&req_url)
             .header("User-Agent", *ua)
-            .query(&params)
-            .send()
-            .await?;
+            .query(&params);
 
-        // 简单处理：如果状态码错误直接报错，成功则解析 JSON
-        if resp.status().is_success() {
-            Ok(resp.json().await?)
-        } else {
-            Err(anyhow::anyhow!("Request failed: {}", resp.status()))
-        }
+        req.execute().await
     }
 
     /// 核心 POST 请求处理
@@ -197,7 +193,7 @@ impl DoubanApi {
 
         params.insert("apikey".to_string(), API_KEY2.to_string());
 
-        let ua = USER_AGENTS.choose(&mut rand::rng()).unwrap();
+        let ua = USER_AGENTS.choose(&mut thread_rng()).unwrap();
 
         let resp = self
             .client
@@ -266,6 +262,8 @@ impl DoubanApi {
     impl_recommend_method!(movie_top250, "movie_top250");
     impl_recommend_method!(tv_hot, "tv_hot");
     impl_recommend_method!(movie_scifi, "movie_scifi");
+    impl_recommend_method!(tv_american, "tv_american");
+    impl_recommend_method!(tv_korean, "tv_korean");
 
     // 3. 特殊方法：IMDB ID (POST)
     pub async fn imdbid(&self, imdbid: &str) -> Result<Value> {

@@ -1,5 +1,5 @@
 [package]
-name = "douban"
+name = "douban_api"
 version = "0.1.0"
 edition.workspace = true
 homepage.workspace = true
@@ -8,6 +8,8 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
+utils.workspace = true
+
 reqwest.workspace = true
 serde.workspace = true
 serde_json.workspace = true
@@ -20,6 +22,9 @@ urlencoding.workspace = true
 anyhow.workspace = true
 rand.workspace = true
 once_cell.workspace = true
+
+[dev-dependencies]
+utils = { workspace = true, features = ["test-verbose"] }
 
 [lints]
 workspace = true
