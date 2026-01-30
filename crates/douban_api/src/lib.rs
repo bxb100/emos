@@ -1,5 +1,4 @@
-mod model;
-
+pub mod model;
 use std::collections::HashMap;
 
 use anyhow::Context;
@@ -11,12 +10,15 @@ use hmac::Hmac;
 use hmac::Mac;
 use once_cell::sync::Lazy;
 use rand::prelude::*;
+use rand::rng;
 use reqwest::Client;
 use reqwest::Url;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use sha1::Sha1;
 use utils::ReqwestExt;
+
+use crate::model::interests::Interests;
 
 // --- Constants ---
 const API_SECRET_KEY: &str = "bf7dddc7c9cfe6f7";
@@ -131,6 +133,7 @@ impl DoubanApi {
     pub fn new() -> Self {
         Self {
             client: Client::builder()
+                .user_agent(USER_AGENTS[0])
                 .cookie_store(true)
                 .build()
                 .unwrap_or_default(),
@@ -172,7 +175,7 @@ impl DoubanApi {
         params.insert("_ts".to_string(), ts);
         params.insert("_sig".to_string(), sig);
 
-        let ua = USER_AGENTS.choose(&mut thread_rng()).unwrap();
+        let ua = USER_AGENTS.choose(&mut rng()).unwrap();
 
         let req = self
             .client
@@ -193,7 +196,7 @@ impl DoubanApi {
 
         params.insert("apikey".to_string(), API_KEY2.to_string());
 
-        let ua = USER_AGENTS.choose(&mut thread_rng()).unwrap();
+        let ua = USER_AGENTS.choose(&mut rng()).unwrap();
 
         let resp = self
             .client
@@ -223,7 +226,7 @@ macro_rules! impl_search_method {
             let params = HashMap::from([
                 ("q".to_string(), keyword.to_string()),
                 ("start".to_string(), start.unwrap_or(0).to_string()),
-                ("count".to_string(), count.unwrap_or(20).to_string()),
+                ("count".to_string(), count.unwrap_or(100).to_string()),
             ]);
             self.invoke(path, params).await
         }
@@ -240,7 +243,7 @@ macro_rules! impl_recommend_method {
             let path = URLS.get($url_key).context("URL key not found")?;
             let params = HashMap::from([
                 ("start".to_string(), start.unwrap_or(0).to_string()),
-                ("count".to_string(), count.unwrap_or(20).to_string()),
+                ("count".to_string(), count.unwrap_or(100).to_string()),
             ]);
             self.invoke(path, params).await
         }
@@ -260,10 +263,14 @@ impl DoubanApi {
     // 2. 推荐/榜单类方法
     impl_recommend_method!(movie_showing, "movie_showing");
     impl_recommend_method!(movie_top250, "movie_top250");
-    impl_recommend_method!(tv_hot, "tv_hot");
     impl_recommend_method!(movie_scifi, "movie_scifi");
+    impl_recommend_method!(tv_hot, "tv_hot");
     impl_recommend_method!(tv_american, "tv_american");
     impl_recommend_method!(tv_korean, "tv_korean");
+    impl_recommend_method!(tv_japanese, "tv_japanese");
+    impl_recommend_method!(tv_domestic, "tv_domestic");
+
+    impl_recommend_method!(tv_global_best_weekly, "tv_global_best_weekly");
 
     // 3. 特殊方法：IMDB ID (POST)
     pub async fn imdbid(&self, imdbid: &str) -> Result<Value> {
@@ -310,9 +317,24 @@ impl DoubanApi {
 
         self.invoke(path, params).await
     }
-}
 
-// --- Usage Example ---
+    // https://github.com/chengzhongxue/plugin-douban/blob/main/src/main/java/la/moony/douban/service/impl/DoubanServiceImpl.java
+    pub async fn wish(
+        &self,
+        user_id: &str,
+        start: Option<u32>,
+        count: Option<u32>,
+    ) -> anyhow::Result<Interests> {
+        let path = format!("/user/{user_id}/interests");
+        let params = HashMap::from([
+            ("type".to_string(), "movie".to_string()),
+            ("status".to_string(), "mark".to_string()),
+            ("count".to_string(), count.unwrap_or(20).to_string()),
+            ("start".to_string(), start.unwrap_or(0).to_string()),
+        ]);
+        self.invoke(&path, params).await
+    }
+}
 
 #[cfg(test)]
 mod tests {

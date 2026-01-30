@@ -24,7 +24,6 @@ pub struct SubjectCollectionItem {
     pub has_linewatch: bool,
     pub id: String,
     pub interest: Value,
-    pub photos: Vec<String>,
     pub tags: Vec<Value>,
     pub title: String,
     #[serde(rename = "type")]
