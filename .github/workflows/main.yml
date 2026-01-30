@@ -5,8 +5,9 @@ on:
   schedule:
     - cron: '0 0 * * *'
   push:
-    tags:
-      - '*'
+    paths:
+      - 'core/**'
+      - 'crates/**'
 
 permissions:
   contents: write
@@ -25,8 +26,8 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           RUN_BUILD="false"
-          if [[ "${{ github.event_name }}" == "push" && "${{ github.ref_type }}" == "tag" ]]; then
-            echo "Trigger is a tag push. Forcing build."
+          if [[ "${{ github.event_name }}" == "push" ]]; then
+            echo "Trigger is a push event. Forcing build and release update."
             RUN_BUILD="true"
           else
             echo "Checking for existing release artifact..."
