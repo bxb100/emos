@@ -22,7 +22,7 @@ impl EmosApi {
     pub async fn batch_update_watch_videos(
         &self,
         watch_id: &str,
-        items: Vec<UpdateWatchVideoBatchItem>,
+        items: &[UpdateWatchVideoBatchItem],
     ) -> Result<()> {
         let url = format!("{}/api/watch/{}/video/update", self.base_url, watch_id);
 

@@ -1,4 +1,3 @@
-use anyhow::Context;
 use anyhow::Result;
 use async_stream::stream;
 use clap::ArgMatches;
@@ -12,7 +11,6 @@ use tokio::time::Duration;
 use tokio::time::sleep;
 use tracing::info;
 
-use crate::Task;
 use crate::add_task;
 
 add_task!(
@@ -52,7 +50,7 @@ pub async fn task(genre: String, watch_id: String) -> Result<()> {
             .collect::<Vec<_>>();
 
         emos_api
-            .batch_update_watch_videos(&watch_id, params)
+            .batch_update_watch_videos(&watch_id, &params)
             .await?;
 
         sleep(Duration::from_secs(10)).await;

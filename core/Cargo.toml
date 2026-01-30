@@ -10,6 +10,8 @@ license.workspace = true
 [dependencies]
 dao.workspace = true
 emos_api.workspace = true
+douban_api.workspace = true
+tmdb_api.workspace = true
 
 tokio.workspace = true
 futures-util.workspace = true
@@ -18,8 +20,8 @@ tracing.workspace = true
 tracing-subscriber.workspace = true
 anyhow.workspace = true
 clap.workspace = true
-
 inventory = "0.3"
+regex = "1"
 
 [lints]
 workspace = true

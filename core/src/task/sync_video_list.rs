@@ -1,6 +1,5 @@
 use std::collections::HashSet;
 
-use anyhow::Context;
 use anyhow::Result;
 use async_stream::stream;
 use clap::ArgMatches;
@@ -13,7 +12,6 @@ use futures_util::pin_mut;
 use tracing::debug;
 use tracing::info;
 
-use crate::Task;
 use crate::add_task;
 
 add_task!("sync_video_list", task);

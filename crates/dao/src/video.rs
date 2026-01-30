@@ -74,6 +74,20 @@ impl Dao {
         .await
         .map_err(Into::into)
     }
+
+    pub async fn find_by_name(&self, name: &str, tv: bool) -> Result<Option<Video>> {
+        let video_type = if tv { "tv" } else { "movie" };
+        let data = query_as!(
+            Video,
+            r"select * from video where video_title like ? and video.video_type = ? limit 1",
+            format!("{name}%"),
+            video_type
+        )
+        .fetch_optional(&self.0)
+        .await?;
+
+        Ok(data)
+    }
 }
 
 #[cfg(test)]
