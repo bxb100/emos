@@ -261,16 +261,18 @@ impl DoubanApi {
     impl_search_method!(group_search, "group_search");
 
     // 2. 推荐/榜单类方法
-    impl_recommend_method!(movie_showing, "movie_showing");
     impl_recommend_method!(movie_top250, "movie_top250");
     impl_recommend_method!(movie_scifi, "movie_scifi");
-    impl_recommend_method!(tv_hot, "tv_hot");
-    impl_recommend_method!(tv_american, "tv_american");
-    impl_recommend_method!(tv_korean, "tv_korean");
-    impl_recommend_method!(tv_japanese, "tv_japanese");
-    impl_recommend_method!(tv_domestic, "tv_domestic");
+    impl_recommend_method!(movie_hot_gaia, "movie_hot_gaia");
+    impl_recommend_method!(movie_comedy, "movie_comedy");
+    impl_recommend_method!(movie_action, "movie_action");
+    impl_recommend_method!(movie_love, "movie_love");
 
+    impl_recommend_method!(tv_hot, "tv_hot");
+    impl_recommend_method!(tv_chinese_best_weekly, "tv_chinese_best_weekly");
     impl_recommend_method!(tv_global_best_weekly, "tv_global_best_weekly");
+
+    impl_recommend_method!(show_hot, "show_hot");
 
     // 3. 特殊方法：IMDB ID (POST)
     pub async fn imdbid(&self, imdbid: &str) -> Result<Value> {

@@ -19,3 +19,6 @@ prune-db:
 
 sqlx-prepare:
     @cargo sqlx prepare --database-url ${DATABASE_URL} --workspace
+
+watch_hot_video:
+    @cargo run watch_hot_video --watch_id $WATCH_ID --douban_user_id $DOUBAN_USER_ID

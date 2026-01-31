@@ -1,6 +1,7 @@
 use std::collections::HashSet;
 
 use douban_api::DoubanApi;
+use douban_api::model::top_list::SubjectCollectionItem;
 use douban_api::model::top_list::TopList;
 use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
@@ -12,10 +13,10 @@ use tmdb_api::model::MediaItem::Tv;
 use crate::ArgMatches;
 use crate::add_task;
 
-add_task!("watch_foreign_tv", run, watch_id: String = "watch_id", douban_user_id: String = "douban_user_id");
+add_task!("watch_hot_video", run, watch_id: String = "watch_id", douban_user_id: String = "douban_user_id");
 
 pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()> {
-    let douban_data = get_douban_foreign_tv(Some(douban_user_id)).await?;
+    let douban_data = get_douban_video(Some(douban_user_id)).await?;
 
     let mut data = vec![];
 
@@ -40,15 +41,12 @@ pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()>
         });
     }
 
-    get_tmdb_foreign_tv(&tmdb_api)
-        .await?
-        .into_iter()
-        .for_each(|id| {
-            data.push(UpdateWatchVideoBatchItem {
-                r#type: BatchType::TmdbTv,
-                value: id.to_string(),
-            });
+    get_tmdb_video(&tmdb_api).await?.into_iter().for_each(|id| {
+        data.push(UpdateWatchVideoBatchItem {
+            r#type: BatchType::TmdbTv,
+            value: id.to_string(),
         });
+    });
 
     let emos_api = emos_api::EmosApi::new()?;
     // chunk 200 and send
@@ -61,29 +59,46 @@ pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()>
     Ok(())
 }
 
-async fn get_douban_foreign_tv(douban_user_id: Option<String>) -> anyhow::Result<Vec<String>> {
+async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<String>> {
     let api = DoubanApi::new();
 
+    let mut res: Vec<SubjectCollectionItem> = vec![];
+    macro_rules! load_all {
+        ($fun:expr) => {{
+            let start = 0;
+            let mut total = 0;
+            let mut res = vec![];
+
+            loop {
+                let data: TopList = $fun(&api, Some(start), Some(50)).await?;
+                res.extend(data.subject_collection_items.into_iter());
+                total += data.count;
+                if total >= data.total {
+                    break;
+                }
+            }
+
+            res
+        }};
+    }
     // tv
-    let tv_hot: TopList = api.tv_hot(Some(0), Some(200)).await?;
-    let american_tv: TopList = api.tv_american(Some(0), Some(200)).await?;
-    let korea_tv: TopList = api.tv_korean(Some(0), Some(200)).await?;
-    let tv_japanese: TopList = api.tv_japanese(Some(0), Some(200)).await?;
+    res.extend(load_all!(DoubanApi::tv_hot));
+    res.extend(load_all!(DoubanApi::tv_chinese_best_weekly));
+    res.extend(load_all!(DoubanApi::tv_global_best_weekly));
+    // show
+    res.extend(load_all!(DoubanApi::show_hot));
     // movie
-    let movie_showing: TopList = api.movie_showing(Some(0), Some(200)).await?;
-    let movie_scifi: TopList = api.movie_scifi(None, Some(500)).await?;
+    res.extend(load_all!(DoubanApi::movie_top250));
+    res.extend(load_all!(DoubanApi::movie_scifi));
+    res.extend(load_all!(DoubanApi::movie_hot_gaia));
+    res.extend(load_all!(DoubanApi::movie_comedy));
+    res.extend(load_all!(DoubanApi::movie_action));
+    res.extend(load_all!(DoubanApi::movie_love));
 
-    let mut items = tv_hot.subject_collection_items;
-    items.extend(american_tv.subject_collection_items);
-    items.extend(korea_tv.subject_collection_items);
-    items.extend(tv_japanese.subject_collection_items);
-    items.extend(movie_showing.subject_collection_items);
-    items.extend(movie_scifi.subject_collection_items);
-
-    let mut foreign_tv = items
+    let mut video_res = res
         .into_iter()
         .map(|item| item.title)
-        .collect::<HashSet<_>>();
+        .collect::<HashSet<String>>();
 
     if let Some(douban_user_id) = douban_user_id {
         let wish_data = api
@@ -93,13 +108,13 @@ async fn get_douban_foreign_tv(douban_user_id: Option<String>) -> anyhow::Result
             .into_iter()
             .map(|item| item.subject.title)
             .collect::<HashSet<_>>();
-        foreign_tv.extend(wish_data);
+        video_res.extend(wish_data);
     }
 
-    Ok(foreign_tv.into_iter().collect())
+    Ok(video_res.into_iter().collect())
 }
 
-async fn get_tmdb_foreign_tv(api: &TmdbApi) -> anyhow::Result<Vec<u64>> {
+async fn get_tmdb_video(api: &TmdbApi) -> anyhow::Result<Vec<u64>> {
     let mut res = vec![];
 
     for _page in 1..=5 {
@@ -119,14 +134,14 @@ mod tests {
 
     #[tokio::test]
     async fn test_get_douban_foreign_tv() {
-        let items = get_douban_foreign_tv(None).await.unwrap();
+        let items = get_douban_video(None).await.unwrap();
         println!("{:?}", items);
     }
 
     #[tokio::test]
     async fn test_get_tmdb_foreign_tv() {
         let api = TmdbApi::new().unwrap();
-        let items = get_tmdb_foreign_tv(&api).await.unwrap();
+        let items = get_tmdb_video(&api).await.unwrap();
         println!("{:?}", items);
     }
 }

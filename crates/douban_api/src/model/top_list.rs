@@ -34,17 +34,9 @@ mod tests {
     use crate::DoubanApi;
 
     #[tokio::test]
-    async fn test_tv_american() -> anyhow::Result<()> {
+    async fn test_tv_hot() -> anyhow::Result<()> {
         let api = DoubanApi::new();
-        let res: TopList = api.tv_american(Some(0), Some(5)).await?;
-        println!("{}", serde_json::to_string(&res)?);
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_tv_korea() -> anyhow::Result<()> {
-        let api = DoubanApi::new();
-        let res: TopList = api.tv_korean(Some(0), Some(50)).await?;
+        let res: TopList = api.tv_chinese_best_weekly(Some(0), Some(50)).await?;
         println!("{}", serde_json::to_string(&res)?);
         Ok(())
     }

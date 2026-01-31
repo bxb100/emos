@@ -23,6 +23,9 @@ anyhow.workspace = true
 rand.workspace = true
 once_cell.workspace = true
 
+[features]
+test-verbose = ["utils/test-verbose"]
+
 [dev-dependencies]
 utils = { workspace = true, features = ["test-verbose"] }
 
