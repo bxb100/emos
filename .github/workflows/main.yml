@@ -86,4 +86,4 @@ jobs:
         run: |
           chmod +x emos-core
           ./emos-core watch_hot_video --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
-          rm .env
+          rm -f .env

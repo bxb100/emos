@@ -103,11 +103,11 @@ mod tests {
     #[ignore]
     async fn test_search_multi() -> anyhow::Result<()> {
         let api = TmdbApi::new()?;
-        let result = api.search_multi("Inception", None).await?;
+        let result = api.search_multi("辛德勒的名单", None).await?;
         println!("Found {} results", result.total_results);
         for item in result.results {
             match item {
-                MediaItem::Movie(m) => println!("Movie: {}", m.title),
+                MediaItem::Movie(m) => println!("Movie: {}, id: {}", m.title, m.id),
                 MediaItem::Tv(t) => println!("TV: {}", t.name),
                 MediaItem::Person(p) => println!("Person: {}", p.name),
                 _ => {}

@@ -9,6 +9,7 @@ use regex::Regex;
 use tmdb_api::TmdbApi;
 use tmdb_api::model::MediaItem::Movie;
 use tmdb_api::model::MediaItem::Tv;
+use tracing::info;
 
 use crate::ArgMatches;
 use crate::add_task;
@@ -28,17 +29,25 @@ pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()>
         let title = title_regex.replace(&datum, "");
 
         let res = tmdb_api.search_multi(&title, None).await?;
-        res.results.iter().for_each(|e| match e {
-            Tv(t) => data.push(UpdateWatchVideoBatchItem {
-                r#type: BatchType::TmdbTv,
-                value: t.id.to_string(),
-            }),
-            Movie(m) => data.push(UpdateWatchVideoBatchItem {
-                r#type: BatchType::TmdbTv,
-                value: m.id.to_string(),
-            }),
-            _ => {}
-        });
+
+        info!("search {} in tmdb got {} results", title, res.total_results);
+
+        // take top 3
+        res.results
+            .iter()
+            .filter(|e| matches!(e, Tv(_) | Movie(_)))
+            .take(3)
+            .for_each(|e| match e {
+                Tv(t) => data.push(UpdateWatchVideoBatchItem {
+                    r#type: BatchType::TmdbTv,
+                    value: t.id.to_string(),
+                }),
+                Movie(m) => data.push(UpdateWatchVideoBatchItem {
+                    r#type: BatchType::TmdbMovie,
+                    value: m.id.to_string(),
+                }),
+                _ => {}
+            });
     }
 
     get_tmdb_video(&tmdb_api).await?.into_iter().for_each(|id| {
@@ -77,6 +86,8 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
                     break;
                 }
             }
+
+            info!("{} load {} items", stringify!($fun), res.len());
 
             res
         }};
