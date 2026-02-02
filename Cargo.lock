@@ -363,25 +363,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "core"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "async-stream",
- "clap",
- "dao",
- "douban_api",
- "emos_api",
- "futures-util",
- "inventory",
- "regex",
- "tmdb_api",
- "tokio",
- "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
 name = "core-foundation"
 version = "0.9.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -633,6 +614,25 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "48c757948c5ede0e46177b7add2e67155f70e33c07fea8284df6576da70b3719"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "emos"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "async-stream",
+ "clap",
+ "dao",
+ "douban_api",
+ "emos_api",
+ "futures-util",
+ "inventory",
+ "regex",
+ "tmdb_api",
+ "tokio",
+ "tracing",
+ "tracing-subscriber",
 ]
 
 [[package]]

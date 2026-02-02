@@ -34,7 +34,7 @@ jobs:
             RUN_BUILD="true"
           else
             echo "Checking for existing release artifact..."
-            if gh release download latest -p emos-core --skip-existing; then
+            if gh release download latest -p emos --skip-existing; then
               echo "Artifact downloaded successfully."
             else
               echo "Artifact download failed or release missing. Forcing build."
@@ -63,8 +63,8 @@ jobs:
       - name: Build Core
         if: steps.check.outputs.run_build == 'true'
         run: |
-          cargo build --release
-          mv target/release/core ./emos-core
+          cargo x dist --package emos --strip true
+          mv target/dist/emos .
 
       - name: Update Release
         if: steps.check.outputs.run_build == 'true'
@@ -73,10 +73,10 @@ jobs:
         run: |
           if gh release view latest > /dev/null 2>&1; then
             echo "Release 'latest' exists. Uploading artifact..."
-            gh release upload latest emos-core --clobber
+            gh release upload latest emos --clobber
           else
             echo "Creating release 'latest'..."
-            gh release create latest emos-core --title "Latest Release" --notes "Auto-generated release for caching" --prerelease
+            gh release create latest emos --title "Latest Release" --notes "Auto-generated release for caching" --prerelease
           fi
 
       - name: Run Task
@@ -84,6 +84,6 @@ jobs:
           WATCH_ID: ${{ secrets.WATCH_ID }}
           DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
         run: |
-          chmod +x emos-core
-          ./emos-core watch_hot_video --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
+          chmod +x emos
+          ./emos watch_hot_video --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
           rm -f .env
