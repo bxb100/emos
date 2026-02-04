@@ -114,7 +114,7 @@ fn make_test_cmd(no_capture: bool, features: &[&str]) -> Result<StdCommand, DynE
     Ok(cmd)
 }
 
-fn make_format_cmd(fix: bool) ->  Result<StdCommand, DynError> {
+fn make_format_cmd(fix: bool) -> Result<StdCommand, DynError> {
     let mut cmd = find_command("cargo")?;
     cmd.args(["+nightly", "fmt", "--all"]);
     if !fix {
@@ -123,7 +123,7 @@ fn make_format_cmd(fix: bool) ->  Result<StdCommand, DynError> {
     Ok(cmd)
 }
 
-fn make_clippy_cmd(fix: bool) ->  Result<StdCommand, DynError> {
+fn make_clippy_cmd(fix: bool) -> Result<StdCommand, DynError> {
     let mut cmd = find_command("cargo")?;
     cmd.args([
         "+nightly",

@@ -74,14 +74,15 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
     let mut res: Vec<SubjectCollectionItem> = vec![];
     macro_rules! load_all {
         ($fun:expr) => {{
-            let start = 0;
+            let mut start = 0i64;
             let mut total = 0;
             let mut res = vec![];
 
             loop {
-                let data: TopList = $fun(&api, Some(start), Some(50)).await?;
+                let data: TopList = $fun(&api, Some(start as i32), Some(50)).await?;
                 res.extend(data.subject_collection_items.into_iter());
                 total += data.count;
+                start += data.count;
                 if total >= data.total {
                     break;
                 }
@@ -128,13 +129,16 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
 async fn get_tmdb_video(api: &TmdbApi) -> anyhow::Result<Vec<u64>> {
     let mut res = vec![];
 
+    // on purpose to sequentially fetch
     for _page in 1..=5 {
         if let Ok(data) = api.tv_popular(Some(_page)).await {
-            res.extend(data.results.iter().map(|s| s.id).collect::<Vec<_>>())
+            res.extend(data.results.iter().map(|s| s.id))
         };
         if let Ok(data) = api.movie_popular(Some(_page)).await {
-            res.extend(data.results.iter().map(|s| s.id).collect::<Vec<_>>())
+            res.extend(data.results.iter().map(|s| s.id))
         };
+
+        info!("Fetched {} items", res.len());
     }
     Ok(res)
 }

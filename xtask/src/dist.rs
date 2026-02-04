@@ -5,17 +5,15 @@ use std::process::Command;
 
 use clap::Parser;
 
-use crate::{find_command, DynError};
+use crate::DynError;
+use crate::find_command;
 use crate::project_root;
 
 #[derive(Parser)]
 pub(crate) struct CommandDist {
     #[arg(long, help = "Binary package name to dist")]
     package: String,
-    #[arg(
-        long,
-        help = "Strip the binary to reduce size",
-    )]
+    #[arg(long, help = "Strip the binary to reduce size")]
     strip: Option<bool>,
 }
 
@@ -25,7 +23,6 @@ fn dist_dir() -> PathBuf {
 }
 
 impl CommandDist {
-
     pub(crate) fn run(&self) -> Result<(), DynError> {
         let _ = fs::remove_dir_all(dist_dir());
         fs::create_dir_all(dist_dir())?;
@@ -49,8 +46,9 @@ impl CommandDist {
 
         fs::copy(&dst, dist_dir().join(&self.package))?;
 
-        if let Some(strip) = self.strip && strip {
-
+        if let Some(strip) = self.strip
+            && strip
+        {
             if find_command("strip").is_ok() {
                 eprintln!("stripping the binary");
                 let status = Command::new("strip").arg(&dst).status()?;
