@@ -1,9 +1,9 @@
 use anyhow::Context;
 use anyhow::Result;
+use emos_utils::ReqwestExt;
 use serde::Deserialize;
 use serde::Serialize;
 use tracing::instrument;
-use utils::ReqwestExt;
 
 pub use crate::EmosApi;
 

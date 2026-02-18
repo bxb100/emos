@@ -7,7 +7,7 @@ fn main() {
         .ancestors()
         .nth(2)
         .expect("Failed to find workspace root")
-        .join("db/emos.sqlite");
+        .join("data/emos.sqlite");
 
     let sqlite_database_url = format!("sqlite://{}", db_path.to_string_lossy());
 

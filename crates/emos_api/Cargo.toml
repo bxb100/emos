@@ -15,10 +15,10 @@ anyhow.workspace = true
 dotenv_codegen.workspace = true
 serde_with.workspace = true
 tracing.workspace = true
-utils.workspace = true
+emos_utils.workspace = true
 
 [dev-dependencies]
-utils = { workspace = true, features = ["test-verbose"] }
+emos_utils = { workspace = true, features = ["test-verbose"] }
 tracing-subscriber.workspace = true
 
 [lints]

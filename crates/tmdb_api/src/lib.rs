@@ -2,13 +2,13 @@ pub mod model;
 
 use anyhow::Context;
 use dotenv_codegen::dotenv;
+use emos_utils::ReqwestExt;
 use model::MediaItem;
 use model::Movie;
 use model::PagedResult;
 use model::Tv;
 use reqwest::Client;
 use reqwest::header;
-use utils::ReqwestExt;
 
 const BASE_URL: &str = "https://api.themoviedb.org/3";
 

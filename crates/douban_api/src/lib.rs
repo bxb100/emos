@@ -6,17 +6,16 @@ use anyhow::Result;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chrono::Local;
+use emos_utils::ReqwestExt;
 use hmac::Hmac;
 use hmac::Mac;
 use once_cell::sync::Lazy;
 use rand::prelude::*;
-use rand::rng;
 use reqwest::Client;
 use reqwest::Url;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use sha1::Sha1;
-use utils::ReqwestExt;
 
 use crate::model::interests::Interests;
 
@@ -175,7 +174,7 @@ impl DoubanApi {
         params.insert("_ts".to_string(), ts);
         params.insert("_sig".to_string(), sig);
 
-        let ua = USER_AGENTS.choose(&mut rng()).unwrap();
+        let ua = USER_AGENTS.choose(&mut thread_rng()).unwrap();
 
         let req = self
             .client
@@ -196,7 +195,7 @@ impl DoubanApi {
 
         params.insert("apikey".to_string(), API_KEY2.to_string());
 
-        let ua = USER_AGENTS.choose(&mut rng()).unwrap();
+        let ua = USER_AGENTS.choose(&mut thread_rng()).unwrap();
 
         let resp = self
             .client

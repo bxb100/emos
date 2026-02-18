@@ -1,5 +1,5 @@
 [package]
-name = "bangumi_api"
+name = "emos_bangumi_api"
 version = "0.1.0"
 edition.workspace = true
 homepage.workspace = true
@@ -8,7 +8,7 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
-utils.workspace = true
+emos_utils.workspace = true
 
 reqwest.workspace = true
 serde.workspace = true
@@ -19,7 +19,7 @@ serde_repr.workspace = true
 dotenv_codegen.workspace = true
 
 [dev-dependencies]
-utils = { workspace = true, features = ["test-verbose"] }
+emos_utils = { workspace = true, features = ["test-verbose"] }
 
 [lints]
 workspace = true

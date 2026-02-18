@@ -1,10 +1,10 @@
 use anyhow::Result;
 use async_stream::stream;
 use clap::ArgMatches;
-use dao::Dao;
-use dao::video::Video;
 use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
+use emos_dao::Dao;
+use emos_dao::video::Video;
 use futures_util::StreamExt;
 use futures_util::pin_mut;
 use tokio::time::Duration;

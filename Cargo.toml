@@ -13,11 +13,11 @@ license = "MIT"
 [workspace.dependencies]
 # memebers
 emos_api = { path = "crates/emos_api" }
-douban_api = { path = "crates/douban_api" }
-bangumi_api = { path = "crates/bangumi_api" }
-tmdb_api = { path = "crates/tmdb_api" }
-dao = { path = "crates/dao" }
-utils = { path = "crates/utils" }
+emos_douban_api = { path = "crates/douban_api" }
+emos_bangumi_api = { path = "crates/bangumi_api" }
+emos_tmdb_api = { path = "crates/tmdb_api" }
+emos_dao = { path = "crates/dao" }
+emos_utils = { path = "crates/utils" }
 
 # others
 reqwest = { version = "0.13", features = ["json", "cookies", "query", "form"] }
@@ -51,6 +51,7 @@ sqlx = { version = "0.8", features = [
 clap = { version = "4.5", features = ["derive"] }
 async-stream = "0"
 futures-util = "0"
+foyer = "0.22"
 
 [workspace.lints.rust]
 unknown_lints = "deny"

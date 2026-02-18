@@ -1,3 +1,5 @@
+pub mod fs;
+
 use std::fmt::Write;
 
 use anyhow::Result;

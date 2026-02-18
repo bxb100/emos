@@ -1,14 +1,14 @@
 use std::collections::HashSet;
 
-use douban_api::DoubanApi;
-use douban_api::model::top_list::SubjectCollectionItem;
-use douban_api::model::top_list::TopList;
 use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
+use emos_douban_api::DoubanApi;
+use emos_douban_api::model::top_list::SubjectCollectionItem;
+use emos_douban_api::model::top_list::TopList;
+use emos_tmdb_api::TmdbApi;
+use emos_tmdb_api::model::MediaItem::Movie;
+use emos_tmdb_api::model::MediaItem::Tv;
 use regex::Regex;
-use tmdb_api::TmdbApi;
-use tmdb_api::model::MediaItem::Movie;
-use tmdb_api::model::MediaItem::Tv;
 use tracing::info;
 
 use crate::ArgMatches;

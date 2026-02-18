@@ -8,10 +8,10 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
-dao.workspace = true
+emos_dao.workspace = true
 emos_api.workspace = true
-douban_api.workspace = true
-tmdb_api.workspace = true
+emos_douban_api.workspace = true
+emos_tmdb_api.workspace = true
 
 tokio.workspace = true
 futures-util.workspace = true
@@ -24,7 +24,7 @@ inventory = "0.3"
 regex = "1"
 
 [dev-dependencies]
-douban_api = { workspace = true, features = ["test-verbose"] }
+emos_douban_api = { workspace = true, features = ["test-verbose"] }
 
 [lints]
 workspace = true

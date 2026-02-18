@@ -36,7 +36,7 @@ mod tests {
     #[tokio::test]
     async fn test_tv_hot() -> anyhow::Result<()> {
         let api = DoubanApi::new();
-        let res: TopList = api.tv_chinese_best_weekly(Some(0), Some(50)).await?;
+        let res: TopList = api.tv_hot(Some(0), Some(50)).await?;
         println!("{}", serde_json::to_string(&res)?);
         Ok(())
     }

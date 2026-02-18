@@ -1,5 +1,5 @@
 [package]
-name = "tmdb_api"
+name = "emos_tmdb_api"
 version = "0.1.0"
 edition = "2024"
 
@@ -8,7 +8,7 @@ reqwest = { workspace = true }
 serde = { workspace = true }
 anyhow = { workspace = true }
 dotenv_codegen = { workspace = true }
-utils.workspace = true
+emos_utils.workspace = true
 
 [dev-dependencies]
 tokio = { workspace = true }

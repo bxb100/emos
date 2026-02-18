@@ -1,0 +1,43 @@
+fail_fast: true
+default_install_hook_types: [pre-push]
+exclude: |
+  (?x)^(
+    .*/(data)/.*|
+  )$
+
+repos:
+  - repo: https://github.com/gitleaks/gitleaks
+    rev: v8.24.2
+    hooks:
+      - id: gitleaks
+  - repo: builtin
+    hooks:
+      - id: trailing-whitespace
+      - id: mixed-line-ending
+      - id: check-yaml
+      - id: check-toml
+      - id: end-of-file-fixer
+
+  - repo: https://github.com/crate-ci/typos
+    rev: v1.43.3
+    hooks:
+      - id: typos
+
+  - repo: https://github.com/executablebooks/mdformat
+    rev: '1.0.0'
+    hooks:
+      - id: mdformat
+        language: python  # ensures that Renovate can update additional_dependencies
+        args: [--number, --compact-tables, --align-semantic-breaks-in-lists]
+        additional_dependencies:
+          - mdformat-mkdocs==5.1.4
+          - mdformat-simple-breaks==0.1.0
+
+  - repo: local
+    hooks:
+      - id: lint
+        name: Lint fix
+        entry: cargo x lint --fix
+        language: system
+        types: [rust]
+        pass_filenames: false
