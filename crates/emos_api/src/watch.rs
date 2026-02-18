@@ -1,4 +1,5 @@
 use anyhow::Result;
+use serde::Deserialize;
 use serde::Serialize;
 
 use crate::EmosApi;
@@ -10,7 +11,7 @@ pub struct UpdateWatchVideoBatchItem {
     pub value: String,
 }
 
-#[derive(Debug, Serialize)]
+#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 #[serde(rename_all = "snake_case")]
 pub enum BatchType {
     TmdbTv,
@@ -22,7 +23,7 @@ impl EmosApi {
     pub async fn batch_update_watch_videos(
         &self,
         watch_id: &str,
-        items: &[UpdateWatchVideoBatchItem],
+        items: Vec<UpdateWatchVideoBatchItem>,
     ) -> Result<()> {
         let url = format!("{}/api/watch/{}/video/update", self.base_url, watch_id);
 

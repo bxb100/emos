@@ -9,12 +9,16 @@ license.workspace = true
 publish = false
 
 [dependencies]
-foyer.workspace = true
 emos_utils.workspace = true
+
 anyhow.workspace = true
+tokio.workspace = true
+foyer.workspace = true
+serde.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true
+serde.workspace = true
 
 [lints]
 workspace = true

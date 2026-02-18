@@ -35,4 +35,4 @@ target/
 data/*.sqlite
 data/*.sqlite-*
 # local cache
-!data/foyer_cache/*
+!data/cache/*

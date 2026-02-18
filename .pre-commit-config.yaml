@@ -1,8 +1,8 @@
 fail_fast: true
-default_install_hook_types: [pre-push]
+default_install_hook_types: [pre-commit]
 exclude: |
   (?x)^(
-    .*/(data)/.*|
+    data/.*|
   )$
 
 repos:
@@ -17,11 +17,6 @@ repos:
       - id: check-yaml
       - id: check-toml
       - id: end-of-file-fixer
-
-  - repo: https://github.com/crate-ci/typos
-    rev: v1.43.3
-    hooks:
-      - id: typos
 
   - repo: https://github.com/executablebooks/mdformat
     rev: '1.0.0'

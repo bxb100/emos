@@ -87,3 +87,12 @@ jobs:
           chmod +x emos
           ./emos watch_hot_video --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
           rm -f .env
+
+      - name: Commit changes
+        continue-on-error: true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "20685961+bxb100@users.noreply.github.com"
+          git add .
+          git commit -m 'CI: update'
+          git push
