@@ -1,0 +1,24 @@
+[package]
+name = "emos_cache"
+version = "0.1.0"
+edition.workspace = true
+homepage.workspace = true
+repository.workspace = true
+readme.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+emos_utils.workspace = true
+
+anyhow.workspace = true
+tokio.workspace = true
+foyer.workspace = true
+serde.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+serde.workspace = true
+
+[lints]
+workspace = true
