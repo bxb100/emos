@@ -75,9 +75,10 @@ pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()>
     Ok(())
 }
 
-async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<CacheData>> {
-    let api = DoubanApi::new();
-
+#[allow(unused_variables)]
+async fn load_douban_collection_data(
+    api: &DoubanApi,
+) -> anyhow::Result<Vec<SubjectCollectionItem>> {
     let mut res: Vec<SubjectCollectionItem> = vec![];
     macro_rules! load_all {
         ($fun:expr) => {{
@@ -86,7 +87,7 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
             let mut res = vec![];
 
             loop {
-                let data: TopList = $fun(&api, Some(start as i32), Some(50)).await?;
+                let data: TopList = $fun(api, Some(start as i32), Some(50)).await?;
                 res.extend(data.subject_collection_items.into_iter());
                 total += data.count;
                 start += data.count;
@@ -113,6 +114,13 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
     res.extend(load_all!(DoubanApi::movie_comedy));
     res.extend(load_all!(DoubanApi::movie_action));
     res.extend(load_all!(DoubanApi::movie_love));
+
+    Ok(res)
+}
+
+async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<CacheData>> {
+    let api = DoubanApi::new();
+    let res = load_douban_collection_data(&api).await?;
 
     let app = Arc::new(App {
         tmdb_api: Arc::new(TmdbApi::new()?),

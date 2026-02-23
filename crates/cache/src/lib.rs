@@ -29,7 +29,7 @@ where
 {
     pub fn new() -> Result<Self> {
         let path = project_root().join("data/cache/simple_cache.bin");
-        let temp_cache = TempCache::<V, K>::new(path, Duration::from_secs(30))?;
+        let temp_cache = TempCache::<V, K>::new(path, Duration::from_hours(100))?;
 
         Ok(Self { inner: temp_cache })
     }

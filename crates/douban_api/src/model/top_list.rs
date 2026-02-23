@@ -2,6 +2,8 @@ use serde::Deserialize;
 use serde::Serialize;
 use serde_json::Value;
 
+use crate::model::TypeField;
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct TopList {
@@ -12,7 +14,7 @@ pub struct TopList {
     pub total: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct SubjectCollectionItem {
     #[serde(rename = "card_subtitle")]
@@ -23,7 +25,7 @@ pub struct SubjectCollectionItem {
     pub interest: Value,
     pub title: String,
     #[serde(rename = "type")]
-    pub type_field: String,
+    pub type_field: TypeField,
     pub uri: String,
     pub year: Option<String>,
 }
