@@ -6,6 +6,7 @@ use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
 use emos_cache::Cache;
 use emos_douban_api::DoubanApi;
+use emos_douban_api::model::TypeField;
 use emos_douban_api::model::top_list::SubjectCollectionItem;
 use emos_douban_api::model::top_list::TopList;
 use emos_tmdb_api::TmdbApi;
@@ -16,6 +17,7 @@ use futures_util::stream;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
+use tracing::debug;
 use tracing::error;
 use tracing::info;
 
@@ -43,7 +45,6 @@ impl From<&CacheData> for UpdateWatchVideoBatchItem {
 type SimpleCache = Cache<String, Vec<CacheData>>;
 struct App {
     tmdb_api: Arc<TmdbApi>,
-    title_regex: Arc<Regex>,
     cache: Arc<SimpleCache>,
 }
 
@@ -76,7 +77,7 @@ pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()>
 }
 
 #[allow(unused_variables)]
-async fn load_douban_collection_data(
+async fn load_chosen_douban_collection_medias(
     api: &DoubanApi,
 ) -> anyhow::Result<Vec<SubjectCollectionItem>> {
     let mut res: Vec<SubjectCollectionItem> = vec![];
@@ -120,11 +121,10 @@ async fn load_douban_collection_data(
 
 async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<CacheData>> {
     let api = DoubanApi::new();
-    let res = load_douban_collection_data(&api).await?;
+    let res = load_chosen_douban_collection_medias(&api).await?;
 
     let app = Arc::new(App {
         tmdb_api: Arc::new(TmdbApi::new()?),
-        title_regex: Arc::new(Regex::new(r"[第\s]+([0-9一二三四五六七八九十S\-]+)\s*季")?),
         cache: Arc::new(SimpleCache::new()?),
     });
     let app_clone = app.clone();
@@ -133,9 +133,15 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
             .filter_map(move |item| {
                 let app_clone = app_clone.clone();
                 async move {
-                    filter_douban_by_cache(app_clone, &item.id, &item.title)
-                        .await
-                        .ok()
+                    filter_douban_by_cache(
+                        app_clone,
+                        item.type_field,
+                        &item.id,
+                        &item.title,
+                        item.year.as_ref(),
+                    )
+                    .await
+                    .ok()
                 }
             })
             .collect::<Vec<_>>()
@@ -155,9 +161,15 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
                     if !i.subject.is_show || !i.subject.is_released {
                         return None;
                     }
-                    filter_douban_by_cache(app_clone, &i.subject.id, &i.subject.title)
-                        .await
-                        .ok()
+                    filter_douban_by_cache(
+                        app_clone,
+                        i.subject.type_field,
+                        &i.subject.id,
+                        &i.subject.title,
+                        Some(&i.subject.year),
+                    )
+                    .await
+                    .ok()
                 }
             })
             .collect::<Vec<_>>()
@@ -189,45 +201,93 @@ async fn get_tmdb_video(api: &TmdbApi) -> anyhow::Result<Vec<u64>> {
 
 async fn filter_douban_by_cache(
     app: Arc<App>,
+    type_field: TypeField,
     item_id: &str,
     item_title: &str,
+    year: Option<impl AsRef<str>>,
 ) -> anyhow::Result<Vec<CacheData>> {
     let id = format!("douban_video_{}", item_id);
     let cache = app.cache.deref();
 
-    if let Ok(Some(data)) = cache.get(&id) {
-        info!("Cache hit {id}, cached: {:?}", data);
+    // empty data fallback to re-fetch
+    if let Ok(Some(data)) = cache.get(&id)
+        && !data.is_empty()
+    {
+        debug!("{id} Cache hit: {:?} ", data);
         bail!("cache hit");
     }
 
-    let title = app.title_regex.replace(item_title, "");
+    let title = regex_replace_season(item_title);
 
-    let res = app.tmdb_api.search_multi(&title, None).await?;
-
-    info!("search {} in tmdb got {} results", title, res.total_results);
-
-    let v = res
-        .results
-        .iter()
-        .filter(|e| matches!(e, Tv(_) | Movie(_)))
-        .take(3)
-        .filter_map(|e| match e {
-            Tv(t) => Some(CacheData {
-                r#type: BatchType::TmdbTv,
-                value: t.id,
-            }),
-            Movie(m) => Some(CacheData {
-                r#type: BatchType::TmdbMovie,
-                value: m.id,
-            }),
-            _ => None,
-        })
-        .collect::<Vec<_>>();
-
-    info!("Found {} items", v.len());
+    let v = match type_field {
+        TypeField::Movie => {
+            let res = app.tmdb_api.search_movie(&title, year, None).await?;
+            info!("Movie {id} {title} found {}", res.total_results);
+            res.results
+                .iter()
+                .map(|m| CacheData {
+                    r#type: BatchType::TmdbMovie,
+                    value: m.id,
+                })
+                .collect::<Vec<_>>()
+        }
+        TypeField::Tv => {
+            let res = app.tmdb_api.search_tv(&title, year, None).await?;
+            info!("TV {id} {title} found {}", res.total_results);
+            res.results
+                .iter()
+                .map(|m| CacheData {
+                    r#type: BatchType::TmdbTv,
+                    value: m.id,
+                })
+                .collect::<Vec<_>>()
+        }
+        TypeField::Unknown(s) => {
+            let res = app.tmdb_api.search_multi(&title, None).await?;
+            info!("Unknown {id} {s} found {}", res.total_results);
+            res.results
+                .iter()
+                .filter(|e| matches!(e, Tv(_) | Movie(_)))
+                .take(3)
+                .filter_map(|e| match e {
+                    Tv(t) => Some(CacheData {
+                        r#type: BatchType::TmdbTv,
+                        value: t.id,
+                    }),
+                    Movie(m) => Some(CacheData {
+                        r#type: BatchType::TmdbMovie,
+                        value: m.id,
+                    }),
+                    _ => None,
+                })
+                .collect::<Vec<_>>()
+        }
+    };
 
     cache.set(id, &v)?;
     Ok(v)
+}
+
+#[inline]
+fn regex_replace_season(title: &str) -> String {
+    let re = Regex::new(r"[第\s]+[0-9一二三四五六七八九十S\-]+\s*季[\s\w]*").unwrap();
+    let res = re.replace(title, "").to_string();
+    // min 2 chinese chars
+    if res.len() <= 6 {
+        return res;
+    }
+
+    let mut chars = res.chars().rev();
+    if match (chars.next(), chars.next()) {
+        (Some(last), Some(sec_last)) => {
+            last.is_ascii_digit() && !(sec_last.is_ascii_digit() || sec_last == '.')
+        }
+        _ => false,
+    } {
+        res.trim_end_matches(char::is_numeric).to_string()
+    } else {
+        res
+    }
 }
 
 #[cfg(test)]
@@ -245,5 +305,18 @@ mod tests {
         let api = TmdbApi::new().unwrap();
         let items = get_tmdb_video(&api).await.unwrap();
         println!("{:?}", items);
+    }
+
+    #[test]
+    fn test_regex() {
+        assert_eq!(
+            regex_replace_season("【我推的孩子】 第三季"),
+            "【我推的孩子】"
+        );
+        assert_eq!(regex_replace_season("辐射 第二季 Fallout Season 2"), "辐射");
+        assert_eq!(regex_replace_season("御赐小仵作2"), "御赐小仵作");
+        assert_eq!(regex_replace_season("有歌2026"), "有歌2026");
+        assert_eq!(regex_replace_season("伟大的导游2.5"), "伟大的导游2.5");
+        assert_eq!(regex_replace_season("x1"), "x1");
     }
 }

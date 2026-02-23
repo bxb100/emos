@@ -5,6 +5,10 @@ use clap::ArgAction;
 use clap::ArgMatches;
 use clap::Command;
 use tracing::info;
+use tracing_subscriber::EnvFilter;
+use tracing_subscriber::fmt;
+use tracing_subscriber::layer::SubscriberExt;
+use tracing_subscriber::util::SubscriberInitExt;
 
 use crate::task::Task;
 
@@ -47,7 +51,10 @@ fn dispatch(matches: ArgMatches) -> Pin<Box<dyn Future<Output = ()> + Send>> {
 }
 
 pub fn main() {
-    tracing_subscriber::fmt().init();
+    tracing_subscriber::registry()
+        .with(fmt::layer())
+        .with(EnvFilter::from_default_env())
+        .init();
 
     let matches = build_cli().get_matches();
 
