@@ -1,10 +1,10 @@
-use std::cell::LazyCell;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use anyhow::bail;
 use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
-use emos_cache::HyperCache;
+use emos_cache::Cache;
 use emos_douban_api::DoubanApi;
 use emos_douban_api::model::top_list::SubjectCollectionItem;
 use emos_douban_api::model::top_list::TopList;
@@ -16,7 +16,6 @@ use futures_util::stream;
 use regex::Regex;
 use serde::Deserialize;
 use serde::Serialize;
-use tokio::sync::OnceCell;
 use tracing::error;
 use tracing::info;
 
@@ -41,16 +40,11 @@ impl From<&CacheData> for UpdateWatchVideoBatchItem {
     }
 }
 
-type Cache = HyperCache<String, Vec<CacheData>>;
-static CACHE: OnceCell<Cache> = OnceCell::const_new();
-
-const TITLE_REGEX: LazyCell<Regex> =
-    LazyCell::new(|| Regex::new(r"[第\s]+([0-9一二三四五六七八九十S\-]+)\s*季").unwrap());
-
-async fn get_cache() -> &'static Cache {
-    CACHE
-        .get_or_init(|| async { HyperCache::new().await.unwrap() })
-        .await
+type SimpleCache = Cache<String, Vec<CacheData>>;
+struct App {
+    tmdb_api: Arc<TmdbApi>,
+    title_regex: Arc<Regex>,
+    cache: Arc<SimpleCache>,
 }
 
 pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()> {
@@ -77,9 +71,6 @@ pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()>
 
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
     }
-
-    // close and flush
-    get_cache().await.cache.close().await?;
 
     Ok(())
 }
@@ -123,15 +114,18 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
     res.extend(load_all!(DoubanApi::movie_action));
     res.extend(load_all!(DoubanApi::movie_love));
 
-    let tmdb_api = Arc::new(TmdbApi::new()?);
-    let tmdb_api_clone = tmdb_api.clone();
-
+    let app = Arc::new(App {
+        tmdb_api: Arc::new(TmdbApi::new()?),
+        title_regex: Arc::new(Regex::new(r"[第\s]+([0-9一二三四五六七八九十S\-]+)\s*季")?),
+        cache: Arc::new(SimpleCache::new()?),
+    });
+    let app_clone = app.clone();
     let mut video_res = {
         stream::iter(res)
             .filter_map(move |item| {
-                let tmdb_api = tmdb_api.clone();
+                let app_clone = app_clone.clone();
                 async move {
-                    filter_douban_by_cache(tmdb_api, &item.id, &item.title)
+                    filter_douban_by_cache(app_clone, &item.id, &item.title)
                         .await
                         .ok()
                 }
@@ -143,16 +137,17 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
             .collect::<Vec<_>>()
     };
 
+    let app_clone = app.clone();
     if let Some(douban_user_id) = douban_user_id {
         let interests = api.wish(&douban_user_id, Some(0), Some(200)).await?;
         stream::iter(interests.interests)
             .filter_map(move |i| {
-                let tmdb_api = tmdb_api_clone.clone();
+                let app_clone = app_clone.clone();
                 async move {
                     if !i.subject.is_show || !i.subject.is_released {
                         return None;
                     }
-                    filter_douban_by_cache(tmdb_api.clone(), &i.subject.id, &i.subject.title)
+                    filter_douban_by_cache(app_clone, &i.subject.id, &i.subject.title)
                         .await
                         .ok()
                 }
@@ -185,21 +180,21 @@ async fn get_tmdb_video(api: &TmdbApi) -> anyhow::Result<Vec<u64>> {
 }
 
 async fn filter_douban_by_cache(
-    tmdb_api: Arc<TmdbApi>,
+    app: Arc<App>,
     item_id: &str,
     item_title: &str,
 ) -> anyhow::Result<Vec<CacheData>> {
     let id = format!("douban_video_{}", item_id);
-    let cache = get_cache().await;
+    let cache = app.cache.deref();
 
-    if let Ok(Some(data)) = cache.cache.get(&id).await {
-        info!("Cache hit {id}, cached: {:?}", data.value());
+    if let Ok(Some(data)) = cache.get(&id) {
+        info!("Cache hit {id}, cached: {:?}", data);
         bail!("cache hit");
     }
 
-    let title = TITLE_REGEX.replace(item_title, "");
+    let title = app.title_regex.replace(item_title, "");
 
-    let res = tmdb_api.search_multi(&title, None).await?;
+    let res = app.tmdb_api.search_multi(&title, None).await?;
 
     info!("search {} in tmdb got {} results", title, res.total_results);
 
@@ -223,7 +218,8 @@ async fn filter_douban_by_cache(
 
     info!("Found {} items", v.len());
 
-    Ok((*cache.cache.insert(id, v)).clone())
+    cache.set(id, &v)?;
+    Ok(v)
 }
 
 #[cfg(test)]

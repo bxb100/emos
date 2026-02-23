@@ -5,6 +5,12 @@ on:
   schedule:
     - cron: '0 0 * * *'
   push:
+    branches:
+      - main
+    paths:
+      - 'core/**'
+      - 'crates/**'
+  pull_request:
     paths:
       - 'core/**'
       - 'crates/**'
@@ -29,12 +35,17 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           RUN_BUILD="false"
+          BINARY_NAME="emos"
           if [[ "${{ github.event_name }}" == "push" ]]; then
             echo "Trigger is a push event. Forcing build and release update."
             RUN_BUILD="true"
+          elif [[ "${{ github.event_name }}" == "pull_request" ]]; then
+            echo "Trigger is a pull_request event. Forcing build and using -dev suffix."
+            RUN_BUILD="true"
+            BINARY_NAME="emos-dev"
           else
             echo "Checking for existing release artifact..."
-            if gh release download latest -p emos --skip-existing; then
+            if gh release download latest -p "$BINARY_NAME" --skip-existing; then
               echo "Artifact downloaded successfully."
             else
               echo "Artifact download failed or release missing. Forcing build."
@@ -42,6 +53,7 @@ jobs:
             fi
           fi
           echo "run_build=$RUN_BUILD" >> $GITHUB_OUTPUT
+          echo "binary_name=$BINARY_NAME" >> $GITHUB_OUTPUT
 
       - name: Install Rust toolchain
         if: steps.check.outputs.run_build == 'true'
@@ -62,30 +74,34 @@ jobs:
 
       - name: Build Core
         if: steps.check.outputs.run_build == 'true'
+        env:
+          BINARY_NAME: ${{ steps.check.outputs.binary_name }}
         run: |
           cargo x dist --package emos --strip true
-          mv target/dist/emos .
+          mv target/dist/emos "./${BINARY_NAME}"
 
       - name: Update Release
         if: steps.check.outputs.run_build == 'true'
         env:
           GH_TOKEN: ${{ github.token }}
+          BINARY_NAME: ${{ steps.check.outputs.binary_name }}
         run: |
           if gh release view latest > /dev/null 2>&1; then
             echo "Release 'latest' exists. Uploading artifact..."
-            gh release upload latest emos --clobber
+            gh release upload latest "$BINARY_NAME" --clobber
           else
             echo "Creating release 'latest'..."
-            gh release create latest emos --title "Latest Release" --notes "Auto-generated release for caching" --prerelease
+            gh release create latest "$BINARY_NAME" --title "Latest Release" --notes "Auto-generated release for caching" --prerelease
           fi
 
       - name: Run Task
         env:
           WATCH_ID: ${{ secrets.WATCH_ID }}
           DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
+          BINARY_NAME: ${{ steps.check.outputs.binary_name }}
         run: |
-          chmod +x emos
-          ./emos watch_hot_video --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
+          chmod +x "$BINARY_NAME"
+          ./"$BINARY_NAME" watch_hot_video --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
           rm -f .env
 
       - name: Commit changes
@@ -95,4 +111,4 @@ jobs:
           git config --global user.email "20685961+bxb100@users.noreply.github.com"
           git add .
           git commit -m 'CI: update'
-          git push
+          git push HEAD:${{ github.ref_name }}

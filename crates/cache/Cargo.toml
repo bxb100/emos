@@ -13,8 +13,15 @@ emos_utils.workspace = true
 
 anyhow.workspace = true
 tokio.workspace = true
-foyer.workspace = true
 serde.workspace = true
+parking_lot = "0.12.5"
+tempfile = "3.19.1"
+rmp-serde = "1.3.0"
+brotli = "8"
+rayon = "1.10"
+thiserror = "2.0"
+delegate = "0.13.5"
+tracing.workspace = true
 
 [dev-dependencies]
 tokio.workspace = true

@@ -1,87 +1,61 @@
+mod blocking;
+mod error;
+mod kv;
+
+use std::borrow::Borrow;
 use std::fmt::Debug;
-use std::hash::BuildHasherDefault;
+use std::time::Duration;
 
 use anyhow::Result;
+use delegate::delegate;
 use emos_utils::fs::project_root;
-use foyer::BlockEngineConfig;
-use foyer::DeviceBuilder;
-use foyer::FsDeviceBuilder;
-use foyer::HybridCache;
-use foyer::HybridCacheBuilder;
-use foyer::HybridCachePolicy;
-use foyer::PsyncIoEngineConfig;
-use foyer::RecoverMode;
-use foyer::StorageKey;
-use foyer::StorageValue;
+use serde::Serialize;
+use serde::de::DeserializeOwned;
 
-pub struct HyperCache<K: StorageKey, V: StorageValue> {
-    pub cache: HybridCache<K, V>,
+use crate::kv::TempCache;
+
+pub struct Cache<K, V>
+where
+    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    V: Serialize + DeserializeOwned + Clone + Send,
+{
+    inner: TempCache<V, K>,
 }
 
-impl<K: StorageKey + Debug, V: StorageValue + Debug> HyperCache<K, V> {
-    pub async fn new() -> Result<Self> {
-        let data_path = project_root().join("data/cache");
+impl<K, V> Cache<K, V>
+where
+    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    V: Serialize + DeserializeOwned + Clone + Send,
+{
+    pub fn new() -> Result<Self> {
+        let path = project_root().join("data/cache/simple_cache.bin");
+        let temp_cache = TempCache::<V, K>::new(path, Duration::from_secs(30))?;
 
-        let device = FsDeviceBuilder::new(data_path)
-            .with_capacity(16 * 1024 * 1024)
-            .build()?;
+        Ok(Self { inner: temp_cache })
+    }
 
-        let hybrid: HybridCache<K, V> = HybridCacheBuilder::new()
-            .with_policy(HybridCachePolicy::WriteOnInsertion)
-            .with_flush_on_close(true)
-            .memory(1024)
-            .with_shards(4)
-            .with_hash_builder(BuildHasherDefault::default())
-            .storage()
-            .with_io_engine_config(PsyncIoEngineConfig::new())
-            .with_engine_config(BlockEngineConfig::new(device))
-            .with_recover_mode(RecoverMode::Quiet)
-            .with_compression(foyer::Compression::Lz4)
-            .build()
-            .await?;
-
-        Ok(Self { cache: hybrid })
+    delegate! {
+        to self.inner {
+            pub fn get<Q>(&self, key: &Q) -> Result<Option<V>> where K: Borrow<Q>, Q: Eq + Ord + Debug + ?Sized;
+            pub fn set(&self, key: impl Into<K>, value: impl Borrow<V>) -> Result<()>;
+        }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use serde::Deserialize;
-    use serde::Serialize;
+    use super::*;
 
-    use crate::HyperCache;
+    #[test]
+    fn it_works() {
+        let cache = Cache::<String, String>::new().unwrap();
+        cache.set("hello", "world".to_string()).unwrap();
 
-    #[derive(Debug, Serialize, Deserialize, PartialEq, Eq, Hash, Clone)]
-    struct TestSerde {
-        id: u64,
-        name: String,
-    }
+        assert_eq!(cache.get("hello").unwrap().unwrap(), "world");
 
-    #[tokio::test]
-    async fn test_it_work() -> anyhow::Result<()> {
-        let c = HyperCache::<String, String>::new().await?;
-        c.cache.insert("key".to_string(), "value".to_string());
-        let v = c.cache.get("key").await?.unwrap();
+        drop(cache);
 
-        assert_eq!(v.value(), "value");
-
-        c.cache.close().await?;
-
-        Ok(())
-    }
-
-    #[tokio::test]
-    async fn test_it_serde() -> anyhow::Result<()> {
-        let c = HyperCache::<TestSerde, u64>::new().await?;
-        let key = TestSerde {
-            id: 1,
-            name: "test".to_string(),
-        };
-
-        c.cache.insert(key.clone(), 1);
-        let v = c.cache.get(&key).await?.unwrap();
-
-        assert_eq!(v.value(), &1);
-        Ok(())
+        let cache = Cache::<String, String>::new().unwrap();
+        assert_eq!(cache.get("hello").unwrap().unwrap(), "world");
     }
 }

@@ -1,4 +1,5 @@
 set dotenv-load := true
+export RUST_LOG := "debug"
 
 default:
     @just --list

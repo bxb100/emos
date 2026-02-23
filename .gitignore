@@ -32,6 +32,11 @@ target/
 # Build artifacts
 **/target
 
+# CI binary
+emos
+emos-dev
+
+# DB files
 data/*.sqlite
 data/*.sqlite-*
 # local cache

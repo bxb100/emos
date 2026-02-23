@@ -52,7 +52,6 @@ sqlx = { version = "0.8", features = [
 clap = { version = "4.5", features = ["derive"] }
 async-stream = "0"
 futures-util = "0"
-foyer = { version = "0.22", features = ["serde"] }
 
 [workspace.lints.rust]
 unknown_lints = "deny"
