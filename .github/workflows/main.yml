@@ -111,4 +111,4 @@ jobs:
           git config --global user.email "20685961+bxb100@users.noreply.github.com"
           git add .
           git commit -m 'CI: update'
-          git push HEAD:${{ github.ref_name }}
+          git push HEAD:${{ github.head_ref || github.ref_name }}
