@@ -51,7 +51,7 @@ pub fn main() {
 
     let matches = build_cli().get_matches();
 
-    tokio::runtime::Builder::new_current_thread()
+    tokio::runtime::Builder::new_multi_thread()
         .enable_all()
         .build()
         .unwrap()
