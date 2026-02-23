@@ -1,6 +1,5 @@
 use anyhow::Result;
 use async_stream::stream;
-use clap::ArgMatches;
 use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
 use emos_dao::Dao;

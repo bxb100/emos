@@ -1,12 +1,11 @@
 use std::pin::Pin;
 
-use clap::ArgMatches;
-
 pub(crate) mod sync_video_list;
 pub(crate) mod watch_basic_genre;
+mod watch_hot_and_persistent;
 pub(crate) mod watch_hot_video;
 
-pub type TaskFn = fn(&ArgMatches) -> Pin<Box<dyn Future<Output = ()> + Send>>;
+pub type TaskFn = fn(&clap::ArgMatches) -> Pin<Box<dyn Future<Output = ()> + Send>>;
 
 pub(crate) struct Task {
     pub(crate) name: &'static str,
@@ -28,7 +27,7 @@ macro_rules! add_task {
                     const ARGS: &[&str] = &[$($arg_name),*];
                     ARGS
                 },
-                run: |arg: &ArgMatches| {
+                run: |arg: &clap::ArgMatches| {
                     $(
                         let $var: $ty = arg
                             .get_one::<$ty>($arg_name)

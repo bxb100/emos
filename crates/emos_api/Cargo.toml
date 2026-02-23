@@ -8,6 +8,8 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
+emos_utils.workspace = true
+
 serde.workspace = true
 tokio.workspace = true
 reqwest.workspace = true
@@ -15,11 +17,13 @@ anyhow.workspace = true
 dotenv_codegen.workspace = true
 serde_with.workspace = true
 tracing.workspace = true
-emos_utils.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
 
 [dev-dependencies]
 emos_utils = { workspace = true, features = ["test-verbose"] }
 tracing-subscriber.workspace = true
+serde_json.workspace = true
 
 [lints]
 workspace = true

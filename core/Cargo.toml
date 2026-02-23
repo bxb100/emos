@@ -13,6 +13,7 @@ emos_api.workspace = true
 emos_douban_api.workspace = true
 emos_tmdb_api.workspace = true
 emos_cache.workspace = true
+emos_utils.workspace = true
 
 tokio.workspace = true
 futures-util.workspace = true
@@ -24,6 +25,9 @@ clap.workspace = true
 inventory = "0.3"
 regex = "1"
 serde.workspace = true
+chrono.workspace = true
+chrono-tz.workspace = true
+serde_json.workspace = true
 
 [dev-dependencies]
 emos_douban_api = { workspace = true, features = ["test-verbose"] }

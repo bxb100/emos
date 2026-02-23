@@ -42,4 +42,12 @@ mod tests {
         println!("{}", serde_json::to_string(&res)?);
         Ok(())
     }
+
+    #[tokio::test]
+    async fn test_show_hot() -> anyhow::Result<()> {
+        let api = DoubanApi::new();
+        let res: TopList = api.show_hot(Some(0), Some(50)).await?;
+        println!("{}", serde_json::to_string(&res)?);
+        Ok(())
+    }
 }

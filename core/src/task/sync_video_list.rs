@@ -2,7 +2,6 @@ use std::collections::HashSet;
 
 use anyhow::Result;
 use async_stream::stream;
-use clap::ArgMatches;
 use emos_api::video;
 use emos_api::video::list::QueryParams;
 use emos_dao::Dao;

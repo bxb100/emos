@@ -21,7 +21,6 @@ use tracing::debug;
 use tracing::error;
 use tracing::info;
 
-use crate::ArgMatches;
 use crate::add_task;
 
 add_task!("watch_hot_video", run, watch_id: String = "watch_id", douban_user_id: String = "douban_user_id");
