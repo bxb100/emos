@@ -1,5 +1,7 @@
 pub mod model;
 
+use std::str::FromStr;
+
 use anyhow::Context;
 use dotenv_codegen::dotenv;
 use emos_utils::ReqwestExt;
@@ -61,6 +63,55 @@ impl TmdbApi {
             .execute()
             .await
             .context("Failed to parse search_multi response")?;
+        Ok(result)
+    }
+
+    pub async fn search_movie(
+        &self,
+        query: &str,
+        year: Option<impl AsRef<str>>,
+        page: Option<u64>,
+    ) -> anyhow::Result<PagedResult<Movie>> {
+        let url = format!("{}/search/movie", self.base_url);
+        let mut request = self.client.get(&url).query(&[("query", query)]);
+
+        if let Some(y) = year {
+            request = request.query(&[("year", y.as_ref())]);
+        }
+        if let Some(p) = page {
+            request = request.query(&[("page", p)]);
+        }
+
+        let result = request
+            .execute()
+            .await
+            .context("Failed to parse search_movie response")?;
+        Ok(result)
+    }
+
+    pub async fn search_tv(
+        &self,
+        query: &str,
+        // we don't use `first_air_date_year` because douban may return season-specific air date
+        year: Option<impl AsRef<str>>,
+        page: Option<u64>,
+    ) -> anyhow::Result<PagedResult<Tv>> {
+        let url = format!("{}/search/tv", self.base_url);
+        let mut request = self.client.get(&url).query(&[("query", query)]);
+
+        if let Some(y) = year
+            && let Ok(_year) = i32::from_str(y.as_ref())
+        {
+            request = request.query(&[("year", y.as_ref())]);
+        }
+        if let Some(p) = page {
+            request = request.query(&[("page", p)]);
+        }
+
+        let result = request
+            .execute()
+            .await
+            .context("Failed to parse search_tv response")?;
         Ok(result)
     }
 

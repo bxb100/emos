@@ -1,6 +1,8 @@
 use serde::Deserialize;
 use serde::Serialize;
 
+use crate::model::TypeField;
+
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Interests {
@@ -10,7 +12,7 @@ pub struct Interests {
     pub total: i64,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Interest {
     pub id: i64,
@@ -18,7 +20,7 @@ pub struct Interest {
     pub subject: Subject,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct Subject {
     #[serde(rename = "card_subtitle")]
@@ -32,7 +34,7 @@ pub struct Subject {
     pub subtype: String,
     pub title: String,
     #[serde(rename = "type")]
-    pub type_field: String,
+    pub type_field: TypeField,
     pub year: String,
 }
 
