@@ -1,0 +1,31 @@
+name: ci.yml
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  pre_ci:
+    uses: bxb100/.github/.github/workflows/pre_ci.yml@main
+
+  lint:
+    needs: pre_ci
+    if: needs.pre_ci.outputs.continue
+    uses: bxb100/.github/.github/workflows/ci_rust.yml@main
+    with:
+      before_command: |
+        # Enable backtraces
+        echo "RUST_BACKTRACE=1" >> $GITHUB_ENV
+        # Offline sqlx
+        echo "SQLX_OFFLINE=true" >> $GITHUB_ENV
+        # Satisfiy dotenv
+        cat > .env <<EOF
+        TMDB_ACCESS_TOKEN=""
+        EMOS_TOKEN=""
+        EMOS_API_URL=""
+        BANGUMI_ACCESS_TOKEN=""
+        EOF
+      command: 'cargo x lint'
+      need_just: false
+      rust_toolchain: 'nightly'
+      rust_components: 'rustfmt,clippy'
