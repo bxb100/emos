@@ -12,6 +12,10 @@ use tracing::info;
 pub struct Dao(SqlitePool);
 
 impl Dao {
+    pub fn from_pool(pool: SqlitePool) -> Self {
+        Self(pool)
+    }
+
     pub async fn new() -> anyhow::Result<Self> {
         let db_url = env!("DATABASE_URL");
         if !Sqlite::database_exists(db_url).await? {
