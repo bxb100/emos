@@ -14,9 +14,9 @@ use std::os::linux::fs::MetadataExt;
 use std::os::macos::fs::MetadataExt;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::SeqCst;
-use std::sync::Arc;
 use std::time::Duration;
 use std::time::Instant;
 use std::time::SystemTime;
@@ -24,11 +24,11 @@ use std::time::SystemTime;
 use anyhow::Result;
 use serde::Deserialize;
 use serde::Serialize;
+use serde::de::DeserializeOwned;
+use tempfile::NamedTempFile;
 use tokio::sync::RwLock;
 use tokio::sync::RwLockReadGuard;
 use tokio::sync::RwLockWriteGuard;
-use serde::de::DeserializeOwned;
-use tempfile::NamedTempFile;
 use tracing::debug;
 use tracing::error;
 use tracing::info;
@@ -156,14 +156,15 @@ impl<
         let path = self.path.clone();
         let default_expiry = self.default_expiry;
 
-        tokio::task::spawn_blocking(move || {
-            Self::load_data_blocking(&path, default_expiry)
-        })
-        .await
-        .map_err(|e| Error::Other(e.to_string()))?
+        tokio::task::spawn_blocking(move || Self::load_data_blocking(&path, default_expiry))
+            .await
+            .map_err(|e| Error::Other(e.to_string()))?
     }
 
-    fn load_data_blocking(path: &Path, default_expiry: Duration) -> Result<(u64, BTreeMap<K, RawEntry>)> {
+    fn load_data_blocking(
+        path: &Path,
+        default_expiry: Duration,
+    ) -> Result<(u64, BTreeMap<K, RawEntry>)> {
         let f = File::open(path)?;
         let file_size = f.metadata()?.st_size();
         let mut f = BufReader::new(f);
@@ -236,7 +237,10 @@ impl<
         Ok(())
     }
 
-    pub async fn set_many(&self, many: impl IntoIterator<Item = (K, impl Borrow<T>)>) -> Result<()> {
+    pub async fn set_many(
+        &self,
+        many: impl IntoIterator<Item = (K, impl Borrow<T>)>,
+    ) -> Result<()> {
         let mut w = self.lock_for_write().await?;
 
         for (key, value) in many {
@@ -325,18 +329,16 @@ impl<
         let data_ref = kw.data.as_ref().unwrap().get(key);
 
         match data_ref {
-            Some(br) => {
-                match Self::unbr(&br.compressed) {
-                    Ok(val) => Ok(Some(val)),
-                    Err(e) => {
-                         error!("unbr of {:?} failed in {} {e}", key, self.path.display());
-                         drop(kw);
-                         let _ = self.delete(key).await;
-                         Err(e)
-                    }
+            Some(br) => match Self::unbr(&br.compressed) {
+                Ok(val) => Ok(Some(val)),
+                Err(e) => {
+                    error!("unbr of {:?} failed in {} {e}", key, self.path.display());
+                    drop(kw);
+                    let _ = self.delete(key).await;
+                    Err(e)
                 }
-            }
-            None => Ok(None)
+            },
+            None => Ok(None),
         }
     }
 
@@ -348,31 +350,31 @@ impl<
     pub async fn save(&self) -> Result<()> {
         let mut data = self.inner.clone().write_owned().await;
         if data.writes > 0 {
-             self.expire_old(&mut data);
+            self.expire_old(&mut data);
 
-             let path = self.path.clone();
-             let guard = data;
+            let path = self.path.clone();
+            let guard = data;
 
-             tokio::task::spawn_blocking(move || {
-                 Self::save_blocking(&guard, &path)?;
-                 // We need to set writes=0 and data=None on the guard if save successful.
-                 // But wait, save_blocking writes to disk.
-                 // Original logic cleared memory if save successful.
-                 // save_blocking returns bool (success).
+            tokio::task::spawn_blocking(move || {
+                Self::save_blocking(&guard, &path)?;
+                // We need to set writes=0 and data=None on the guard if save successful.
+                // But wait, save_blocking writes to disk.
+                // Original logic cleared memory if save successful.
+                // save_blocking returns bool (success).
 
-                 // However, guard is moved here.
-                 // We can mutate it here.
-                 // But guard type is OwnedRwLockWriteGuard.
-                 // We need mut access.
-                 let mut g = guard;
-                 g.writes = 0;
-                 g.data = None;
-                 Ok::<(), Error>(())
-             })
-             .await
-             .map_err(|e| Error::Other(e.to_string()))??;
+                // However, guard is moved here.
+                // We can mutate it here.
+                // But guard type is OwnedRwLockWriteGuard.
+                // We need mut access.
+                let mut g = guard;
+                g.writes = 0;
+                g.data = None;
+                Ok::<(), Error>(())
+            })
+            .await
+            .map_err(|e| Error::Other(e.to_string()))??;
         } else {
-             data.data = None;
+            data.data = None;
         }
         Ok(())
     }
@@ -416,9 +418,7 @@ impl<
             rmp_serde::encode::write(&mut file, data)?;
             // checked after encode to minimize race condition time window
             let expected_size = d.expected_size.load(SeqCst);
-            let on_disk_size = std::fs::metadata(path)
-                .ok()
-                .map_or(0, |m| m.st_size());
+            let on_disk_size = std::fs::metadata(path).ok().map_or(0, |m| m.st_size());
             if on_disk_size != expected_size {
                 error!(
                     "Data write race; discarding {} (expected {expected_size}; got {on_disk_size})",
