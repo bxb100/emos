@@ -332,7 +332,7 @@ impl<
                          error!("unbr of {:?} failed in {} {e}", key, self.path.display());
                          drop(kw);
                          let _ = self.delete(key).await;
-                         Err(e.into())
+                         Err(e)
                     }
                 }
             }
@@ -407,6 +407,9 @@ impl<
                 d.writes,
                 d.next_autosave
             );
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
             let tmp_path = NamedTempFile::new_in(path.parent().expect("tmp"))?;
             let mut file = BufWriter::with_capacity(1 << 18, File::create(&tmp_path)?);
 
@@ -488,19 +491,19 @@ impl<
 {
     fn drop(&mut self) {
         // Best effort save on drop
-        if let Ok(mut d) = self.inner.clone().try_write_owned() {
-            if d.writes > 0 {
-                self.expire_old(&mut d);
-                let path = self.path.clone();
-                // Spawn a thread to save to avoid blocking async runtime or panicking
-                // RwLockWriteGuard is Send, so we can move it to another thread.
-                let _ = std::thread::spawn(move || {
-                    if let Err(err) = Self::save_blocking(&d, &path) {
-                        error!("Temp db save failed: {err}");
-                    }
-                })
-                .join();
-            }
+        if let Ok(mut d) = self.inner.clone().try_write_owned()
+            && d.writes > 0
+        {
+            self.expire_old(&mut d);
+            let path = self.path.clone();
+            // Spawn a thread to save to avoid blocking async runtime or panicking
+            // RwLockWriteGuard is Send, so we can move it to another thread.
+            let _ = std::thread::spawn(move || {
+                if let Err(err) = Self::save_blocking(&d, &path) {
+                    error!("Temp db save failed: {err}");
+                }
+            })
+            .join();
         }
     }
 }
