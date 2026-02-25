@@ -1,4 +1,3 @@
-mod blocking;
 mod error;
 mod kv;
 
@@ -16,7 +15,7 @@ use crate::kv::TempCache;
 
 pub struct Cache<K, V>
 where
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static,
     V: Serialize + DeserializeOwned + Clone + Send,
 {
     inner: TempCache<V, K>,
@@ -24,7 +23,7 @@ where
 
 impl<K, V> Cache<K, V>
 where
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static,
     V: Serialize + DeserializeOwned + Clone + Send,
 {
     pub fn new() -> Result<Self> {
@@ -36,8 +35,8 @@ where
 
     delegate! {
         to self.inner {
-            pub fn get<Q>(&self, key: &Q) -> Result<Option<V>> where K: Borrow<Q>, Q: Eq + Ord + Debug + ?Sized;
-            pub fn set(&self, key: impl Into<K>, value: impl Borrow<V>) -> Result<()>;
+            pub async fn get<Q>(&self, key: &Q) -> Result<Option<V>> where K: Borrow<Q>, Q: Eq + Ord + Debug + ?Sized;
+            pub async fn set(&self, key: impl Into<K>, value: impl Borrow<V>) -> Result<()>;
         }
     }
 }
@@ -46,16 +45,16 @@ where
 mod tests {
     use super::*;
 
-    #[test]
-    fn it_works() {
+    #[tokio::test]
+    async fn it_works() {
         let cache = Cache::<String, String>::new().unwrap();
-        cache.set("hello", "world".to_string()).unwrap();
+        cache.set("hello", "world".to_string()).await.unwrap();
 
-        assert_eq!(cache.get("hello").unwrap().unwrap(), "world");
+        assert_eq!(cache.get("hello").await.unwrap().unwrap(), "world");
 
         drop(cache);
 
         let cache = Cache::<String, String>::new().unwrap();
-        assert_eq!(cache.get("hello").unwrap().unwrap(), "world");
+        assert_eq!(cache.get("hello").await.unwrap().unwrap(), "world");
     }
 }
