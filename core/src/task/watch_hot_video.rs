@@ -65,8 +65,8 @@ pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()>
             .batch_update_watch_videos(&watch_id, batch.iter().map(Into::into).collect::<Vec<_>>())
             .await
         {
-            error!("Failed to update watch videos: {:?}", batch);
-            bail!(e);
+            error!("Failed to update watch videos: {:?}", e);
+            // Continue even on error to allow other batches to process
         }
 
         tokio::time::sleep(std::time::Duration::from_secs(10)).await;
