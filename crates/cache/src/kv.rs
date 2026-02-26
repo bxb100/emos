@@ -14,6 +14,7 @@ use std::os::linux::fs::MetadataExt;
 use std::os::macos::fs::MetadataExt;
 use std::path::Path;
 use std::path::PathBuf;
+use std::sync::Arc;
 use std::sync::atomic::AtomicU64;
 use std::sync::atomic::Ordering::SeqCst;
 use std::time::Duration;
@@ -21,19 +22,18 @@ use std::time::Instant;
 use std::time::SystemTime;
 
 use anyhow::Result;
-use parking_lot::RwLock;
-use parking_lot::RwLockReadGuard;
-use parking_lot::RwLockWriteGuard;
 use serde::Deserialize;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 use tempfile::NamedTempFile;
+use tokio::sync::RwLock;
+use tokio::sync::RwLockReadGuard;
+use tokio::sync::RwLockWriteGuard;
 use tracing::debug;
 use tracing::error;
 use tracing::info;
 use tracing::warn;
 
-use crate::blocking;
 use crate::error::Error;
 
 #[derive(Serialize, Deserialize, Clone)]
@@ -53,17 +53,17 @@ struct Inner<K> {
 
 pub struct TempCacheJson<
     T: Serialize + DeserializeOwned + Clone + Send,
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord = Box<str>,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static = Box<str>,
 > {
     cache: TempCache<T, K>,
 }
 
 pub struct TempCache<
     T: Serialize + DeserializeOwned + Clone + Send,
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord = Box<str>,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static = Box<str>,
 > {
     path: PathBuf,
-    inner: RwLock<Inner<K>>,
+    inner: Arc<RwLock<Inner<K>>>,
     _ty: PhantomData<T>,
     pub cache_only: bool,
     default_expiry: Duration,
@@ -71,7 +71,7 @@ pub struct TempCache<
 
 impl<
     T: Serialize + DeserializeOwned + Clone + Send,
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static,
 > TempCacheJson<T, K>
 {
     pub fn new(path: impl AsRef<Path>, default_expiry: Duration) -> Result<Self> {
@@ -83,7 +83,7 @@ impl<
 
 impl<
     T: Serialize + DeserializeOwned + Clone + Send,
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static,
 > TempCache<T, K>
 {
     pub fn new(path: impl AsRef<Path>, default_expiry: Duration) -> Result<Self> {
@@ -98,13 +98,13 @@ impl<
 
         Ok(Self {
             path,
-            inner: RwLock::new(Inner {
+            inner: Arc::new(RwLock::new(Inner {
                 data,
                 writes: 0,
                 next_autosave: 20,
                 expected_size: AtomicU64::new(0),
                 next_save_time: Instant::now() + Duration::from_secs(30),
-            }),
+            })),
             _ty: PhantomData,
             cache_only: false,
             default_expiry,
@@ -112,74 +112,75 @@ impl<
     }
 
     #[inline]
-    pub fn set(&self, key: impl Into<K>, value: impl Borrow<T>) -> Result<()> {
-        self.set_many([(key.into(), value)])
+    pub async fn set(&self, key: impl Into<K>, value: impl Borrow<T>) -> Result<()> {
+        self.set_many([(key.into(), value)]).await
     }
 
-    #[track_caller]
-    fn lock_for_write(&self) -> Result<RwLockWriteGuard<'_, Inner<K>>> {
-        if let Some(inner) = self.inner.try_write()
+    async fn lock_for_write(&self) -> Result<RwLockWriteGuard<'_, Inner<K>>> {
+        if let Some(inner) = self.inner.try_write().ok()
             && inner.data.is_some()
         {
             return Ok(inner);
         }
-        blocking::block_in_place("lfw", || {
-            let mut inner = self
-                .inner
-                .try_write_for(Duration::from_secs(6))
-                .ok_or(Error::Timeout)?;
-            if inner.data.is_none() {
-                let (size, data) = self.load_data()?;
-                inner.expected_size = AtomicU64::new(size);
-                inner.data = Some(data);
-                inner.writes = 0;
-                inner.next_autosave = 20;
-                inner.next_save_time = Instant::now() + Duration::from_secs(30);
-            }
-            Ok(inner)
-        })
+
+        let mut inner = self.inner.write().await;
+        if inner.data.is_none() {
+            let (size, data) = self.load_data().await?;
+            inner.expected_size = AtomicU64::new(size);
+            inner.data = Some(data);
+            inner.writes = 0;
+            inner.next_autosave = 20;
+            inner.next_save_time = Instant::now() + Duration::from_secs(30);
+        }
+        Ok(inner)
     }
 
-    #[track_caller]
-    fn lock_for_read(&self) -> Result<RwLockReadGuard<'_, Inner<K>>, Error> {
-        if let Some(inner) = self.inner.try_read()
+    async fn lock_for_read(&self) -> Result<RwLockReadGuard<'_, Inner<K>>, Error> {
+        if let Some(inner) = self.inner.try_read().ok()
             && inner.data.is_some()
         {
             return Ok(inner);
         }
-        blocking::block_in_place("lfr", || {
-            for _ in 0..5 {
-                let inner = self
-                    .inner
-                    .try_read_for(Duration::from_secs(8))
-                    .ok_or(Error::Timeout)?;
-                if inner.data.is_some() {
-                    return Ok(inner);
-                }
-                drop(inner);
-                let _loads_data = self.lock_for_write()?;
-            }
-            Err::<_, Error>(Error::Timeout)
-        })
+
+        let inner = self.inner.read().await;
+        if inner.data.is_some() {
+            return Ok(inner);
+        }
+        drop(inner);
+
+        let _ = self.lock_for_write().await?;
+        Ok(self.inner.read().await)
     }
 
-    fn load_data(&self) -> Result<(u64, BTreeMap<K, RawEntry>)> {
-        let f = File::open(&self.path)?;
+    async fn load_data(&self) -> Result<(u64, BTreeMap<K, RawEntry>)> {
+        let path = self.path.clone();
+        let default_expiry = self.default_expiry;
+
+        tokio::task::spawn_blocking(move || Self::load_data_blocking(&path, default_expiry))
+            .await
+            .map_err(|e| Error::Other(e.to_string()))?
+    }
+
+    fn load_data_blocking(
+        path: &Path,
+        default_expiry: Duration,
+    ) -> Result<(u64, BTreeMap<K, RawEntry>)> {
+        let f = File::open(path)?;
         let file_size = f.metadata()?.st_size();
         let mut f = BufReader::new(f);
         let data: BTreeMap<K, RawEntry> = match rmp_serde::from_read(&mut f) {
             Ok(data) => data,
             Err(e) => {
-                warn!("Trying to upgrade the file {}: {e}", self.path.display());
+                warn!("Trying to upgrade the file {}: {e}", path.display());
                 f.rewind()?;
                 let data2: BTreeMap<K, Box<[u8]>> = rmp_serde::from_read(&mut f).map_err(|e| {
-                    error!("File {} is broken: {}", self.path.display(), e);
+                    error!("File {} is broken: {}", path.display(), e);
                     e
                 })?;
-                let expiry_timestamp = if self.default_expiry == Duration::ZERO {
+                let expiry_timestamp = if default_expiry == Duration::ZERO {
                     0
                 } else {
-                    Self::expiry(self.default_expiry)
+                    Self::expiry(default_expiry)
                 };
                 let mut fuzzy_expiry = 0u32;
                 data2
@@ -212,7 +213,6 @@ impl<
         Ok(e.into_inner())
     }
 
-    #[track_caller]
     fn set_one(w: &mut Inner<K>, key: K, value: &T) -> Result<()> {
         let compr = Self::serialize(value)?;
         debug_assert!(Self::unbr(&compr).is_ok());
@@ -237,18 +237,20 @@ impl<
         Ok(())
     }
 
-    #[track_caller]
-    pub fn set_many(&self, many: impl IntoIterator<Item = (K, impl Borrow<T>)>) -> Result<()> {
-        let mut w = self.lock_for_write()?;
+    pub async fn set_many(
+        &self,
+        many: impl IntoIterator<Item = (K, impl Borrow<T>)>,
+    ) -> Result<()> {
+        let mut w = self.lock_for_write().await?;
 
         for (key, value) in many {
             Self::set_one(&mut w, key, value.borrow())?;
         }
 
-        self.save_if_needed(w)
+        self.save_if_needed(w).await
     }
 
-    fn save_if_needed(&self, mut w: RwLockWriteGuard<'_, Inner<K>>) -> Result<()> {
+    async fn save_if_needed(&self, mut w: RwLockWriteGuard<'_, Inner<K>>) -> Result<()> {
         if w.writes < w.next_autosave || w.data.is_none() {
             return Ok(());
         }
@@ -261,76 +263,83 @@ impl<
         w.next_autosave *= 2;
         w.next_save_time = now + Duration::from_secs(20);
         drop(w); // unlock writes
-        blocking::block_in_place(format_args!("save {}", self.path.display()), move || {
-            let d = self.lock_for_read()?;
-            if !self.save_unlocked(&d)? {
-                let mut w = self
-                    .inner
-                    .try_write_for(Duration::from_secs(20))
-                    .ok_or(Error::Timeout)?;
-                w.writes = 0;
-                w.data = None;
-            }
+
+        let inner = self.inner.clone();
+        let path = self.path.clone();
+
+        let success = tokio::task::spawn_blocking(move || {
+            let d = inner.blocking_read();
+            Self::save_blocking(&d, &path)
+        })
+        .await
+        .map_err(|e| Error::Other(e.to_string()))??;
+
+        if !success {
+            let mut w = self.inner.write().await;
+            w.writes = 0;
+            w.data = None;
+        }
+        Ok(())
+    }
+
+    pub async fn for_each(&self, mut cb: impl FnMut(&K, T)) -> Result<()> {
+        let kw = self.lock_for_read().await?;
+        kw.data.as_ref().unwrap().iter().try_for_each(|(k, v)| {
+            let v = Self::unbr(&v.compressed)?;
+            cb(k, v);
             Ok(())
         })
     }
 
-    #[track_caller]
-    pub fn for_each(&self, mut cb: impl FnMut(&K, T)) -> Result<()> {
-        blocking::block_in_place("kv-foreach", || {
-            let kw = self.lock_for_read()?;
-            kw.data.as_ref().unwrap().iter().try_for_each(|(k, v)| {
-                let v = Self::unbr(&v.compressed)?;
-                cb(k, v);
-                Ok(())
-            })
-        })
-    }
-
-    #[track_caller]
-    pub fn par_for_each(&self, cb: impl Fn(&K, T) + Sync) -> Result<()>
+    pub async fn par_for_each(&self, cb: impl Fn(&K, T) + Sync) -> Result<()>
     where
         K: Send + Sync,
         T: Send + Sync,
     {
-        blocking::block_in_place("kv-par-foreach", || {
-            let kw = self.lock_for_read()?;
-            use rayon::prelude::*;
-            kw.data.as_ref().unwrap().par_iter().try_for_each(|(k, v)| {
-                let v = Self::unbr(&v.compressed)?;
-                cb(k, v);
-                Ok(())
-            })
+        let kw = self.lock_for_read().await?;
+        // Use spawn_blocking for cpu intensive task if needed, but rayon handles parallelism.
+        // But rayon runs in thread pool. We are in async task.
+        // We can just run it here.
+        use rayon::prelude::*;
+        kw.data.as_ref().unwrap().par_iter().try_for_each(|(k, v)| {
+            let v = Self::unbr(&v.compressed)?;
+            cb(k, v);
+            Ok(())
         })
     }
 
-    pub fn delete<Q>(&self, key: &Q) -> Result<()>
+    pub async fn delete<Q>(&self, key: &Q) -> Result<()>
     where
         K: Borrow<Q>,
         Q: Eq + Ord + ?Sized,
     {
-        let mut d = self.lock_for_write()?;
+        let mut d = self.lock_for_write().await?;
         if d.data.as_mut().unwrap().remove(key).is_some() {
             d.writes += 1;
         }
         Ok(())
     }
 
-    #[track_caller]
-    pub fn get<Q>(&self, key: &Q) -> Result<Option<T>>
+    pub async fn get<Q>(&self, key: &Q) -> Result<Option<T>>
     where
         K: Borrow<Q>,
         Q: Eq + Ord + std::fmt::Debug + ?Sized,
     {
-        let kw = self.lock_for_read()?;
-        Ok(match kw.data.as_ref().unwrap().get(key) {
-            Some(br) => Some(Self::unbr(&br.compressed).inspect_err(|e| {
-                error!("unbr of {:?} failed in {} {e}", key, self.path.display());
-                drop(kw);
-                let _ = self.delete(key);
-            })?),
-            None => None,
-        })
+        let kw = self.lock_for_read().await?;
+        let data_ref = kw.data.as_ref().unwrap().get(key);
+
+        match data_ref {
+            Some(br) => match Self::unbr(&br.compressed) {
+                Ok(val) => Ok(Some(val)),
+                Err(e) => {
+                    error!("unbr of {:?} failed in {} {e}", key, self.path.display());
+                    drop(kw);
+                    let _ = self.delete(key).await;
+                    Err(e)
+                }
+            },
+            None => Ok(None),
+        }
     }
 
     fn unbr(data: &[u8]) -> Result<T> {
@@ -338,19 +347,36 @@ impl<
         Ok(rmp_serde::decode::from_read(unbr)?)
     }
 
-    pub fn save(&self) -> Result<()> {
-        blocking::block_in_place("save", || {
-            let mut data = self
-                .inner
-                .try_write_for(Duration::from_secs(8))
-                .ok_or(Error::Timeout)?;
-            if data.writes > 0 {
-                self.expire_old(&mut data);
-                self.save_unlocked(&data)?;
-            }
-            data.data = None; // Flush mem
-            Ok(())
-        })
+    pub async fn save(&self) -> Result<()> {
+        let mut data = self.inner.clone().write_owned().await;
+        if data.writes > 0 {
+            self.expire_old(&mut data);
+
+            let path = self.path.clone();
+            let guard = data;
+
+            tokio::task::spawn_blocking(move || {
+                Self::save_blocking(&guard, &path)?;
+                // We need to set writes=0 and data=None on the guard if save successful.
+                // But wait, save_blocking writes to disk.
+                // Original logic cleared memory if save successful.
+                // save_blocking returns bool (success).
+
+                // However, guard is moved here.
+                // We can mutate it here.
+                // But guard type is OwnedRwLockWriteGuard.
+                // We need mut access.
+                let mut g = guard;
+                g.writes = 0;
+                g.data = None;
+                Ok::<(), Error>(())
+            })
+            .await
+            .map_err(|e| Error::Other(e.to_string()))??;
+        } else {
+            data.data = None;
+        }
+        Ok(())
     }
 
     fn expire_old(&self, d: &mut Inner<K>) {
@@ -374,38 +400,39 @@ impl<
         }
     }
 
-    fn save_unlocked(&self, d: &Inner<K>) -> Result<bool> {
+    fn save_blocking(d: &Inner<K>, path: &Path) -> Result<bool> {
         if let Some(data) = d.data.as_ref() {
             debug!(
                 "saving {} {} rows [{}/{}] next",
-                self.path.display(),
+                path.display(),
                 data.len(),
                 d.writes,
                 d.next_autosave
             );
-            let tmp_path = NamedTempFile::new_in(self.path.parent().expect("tmp"))?;
+            if let Some(parent) = path.parent() {
+                std::fs::create_dir_all(parent)?;
+            }
+            let tmp_path = NamedTempFile::new_in(path.parent().expect("tmp"))?;
             let mut file = BufWriter::with_capacity(1 << 18, File::create(&tmp_path)?);
 
             rmp_serde::encode::write(&mut file, data)?;
             // checked after encode to minimize race condition time window
             let expected_size = d.expected_size.load(SeqCst);
-            let on_disk_size = std::fs::metadata(&self.path)
-                .ok()
-                .map_or(0, |m| m.st_size());
+            let on_disk_size = std::fs::metadata(path).ok().map_or(0, |m| m.st_size());
             if on_disk_size != expected_size {
                 error!(
                     "Data write race; discarding {} (expected {expected_size}; got {on_disk_size})",
-                    self.path.display()
+                    path.display()
                 );
                 return Ok(false);
             }
             let new_size = file
                 .into_inner()
-                .map_err(|e| Error::Other(format!("{} @ {}", e.error(), self.path.display())))? // uuuuugh
+                .map_err(|e| Error::Other(format!("{} @ {}", e.error(), path.display())))? // uuuuugh
                 .metadata()?
                 .st_size();
             tmp_path
-                .persist(self.path.with_extension("mpbr"))
+                .persist(path.with_extension("mpbr"))
                 .map_err(|e| e.error)?;
             d.expected_size.store(new_size, SeqCst);
         }
@@ -415,7 +442,7 @@ impl<
 
 impl<
     T: Serialize + DeserializeOwned + Clone + Send,
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static,
 > TempCacheJson<T, K>
 {
     #[inline(always)]
@@ -429,63 +456,71 @@ impl<
     }
 
     #[inline(always)]
-    pub fn get<Q>(&self, key: &Q) -> Result<Option<T>>
+    pub async fn get<Q>(&self, key: &Q) -> Result<Option<T>>
     where
         K: Borrow<Q>,
         Q: Eq + Ord + std::fmt::Debug + ?Sized,
     {
-        self.cache.get(key)
+        self.cache.get(key).await
     }
 
     #[inline(always)]
-    pub fn set(&self, key: impl Into<K>, value: impl Borrow<T>) -> Result<()> {
-        self.cache.set(key, value)
+    pub async fn set(&self, key: impl Into<K>, value: impl Borrow<T>) -> Result<()> {
+        self.cache.set(key, value).await
     }
 
     #[inline(always)]
-    pub fn delete<Q>(&self, key: &Q) -> Result<()>
+    pub async fn delete<Q>(&self, key: &Q) -> Result<()>
     where
         K: Borrow<Q>,
         Q: Eq + Ord + ?Sized,
     {
-        self.cache.delete(key)
+        self.cache.delete(key).await
     }
 
     #[inline(always)]
-    pub fn save(&self) -> Result<()> {
-        self.cache.save()
+    pub async fn save(&self) -> Result<()> {
+        self.cache.save().await
     }
 }
 
 impl<
     T: Serialize + DeserializeOwned + Clone + Send,
-    K: Serialize + DeserializeOwned + Clone + Send + Eq + Ord,
+    K: Serialize + DeserializeOwned + Clone + Send + Sync + Eq + Ord + 'static,
 > Drop for TempCache<T, K>
 {
     fn drop(&mut self) {
-        if let Some(mut d) = self.inner.try_write_for(Duration::from_secs(8))
+        // Best effort save on drop
+        if let Ok(mut d) = self.inner.clone().try_write_owned()
             && d.writes > 0
         {
             self.expire_old(&mut d);
-            if let Err(err) = self.save_unlocked(&d) {
-                error!("Temp db save failed: {err}");
-            }
+            let path = self.path.clone();
+            // Spawn a thread to save to avoid blocking async runtime or panicking
+            // RwLockWriteGuard is Send, so we can move it to another thread.
+            let _ = std::thread::spawn(move || {
+                if let Err(err) = Self::save_blocking(&d, &path) {
+                    error!("Temp db save failed: {err}");
+                }
+            })
+            .join();
         }
     }
 }
 
-#[test]
-fn kvtest() {
+#[tokio::test]
+async fn kvtest() {
     let tmp: TempCache<(String, String)> =
         TempCache::new("/tmp/rmptest.bin", Duration::from_secs(1234)).unwrap();
     tmp.set("hello", ("world".to_string(), "etc".to_string()))
+        .await
         .unwrap();
-    let res = tmp.get("hello").unwrap().unwrap();
+    let res = tmp.get("hello").await.unwrap().unwrap();
     drop(tmp);
     assert_eq!(res, ("world".to_string(), "etc".to_string()));
 
     let tmp2: TempCache<(String, String)> =
         TempCache::new("/tmp/rmptest.bin", Duration::from_secs(1234)).unwrap();
-    let res2 = tmp2.get("hello").unwrap().unwrap();
+    let res2 = tmp2.get("hello").await.unwrap().unwrap();
     assert_eq!(res2, ("world".to_string(), "etc".to_string()));
 }
