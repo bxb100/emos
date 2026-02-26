@@ -41,3 +41,6 @@ data/*.sqlite
 data/*.sqlite-*
 # local cache
 !data/cache/*
+.env
+*.db-shm
+*.db-wal

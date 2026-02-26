@@ -29,7 +29,21 @@ impl Dao {
     ) -> Result<Vec<Video>> {
         let data = query_as!(
             Video,
-            r"select video.* from video, json_each(genres) where todb_id > ? and json_extract(json_each.value, '$.name') = ? order by todb_id limit ?",
+            r#"
+            SELECT
+                v.todb_id as "todb_id!",
+                v.tmdb_id as "tmdb_id!",
+                v.video_id as "video_id!",
+                v.video_type,
+                v.video_title,
+                v.genres
+            FROM video v
+            JOIN video_genre vg ON v.todb_id = vg.todb_id
+            JOIN genre g ON vg.genre_id = g.id
+            WHERE v.todb_id > ? AND g.name = ?
+            ORDER BY v.todb_id
+            LIMIT ?
+            "#,
             todb_id,
             genre_name,
             limit
@@ -45,21 +59,59 @@ impl Dao {
             return Ok(0);
         }
 
+        let mut tx = self.0.begin().await?;
+
         let mut query_builder: QueryBuilder<Sqlite> = QueryBuilder::new(
             "INSERT INTO video (todb_id, tmdb_id, video_id, video_type, video_title, genres) ",
         );
 
-        query_builder.push_values(items, |mut b, item| {
+        query_builder.push_values(&items, |mut b, item| {
             b.push_bind(item.todb_id)
                 .push_bind(item.tmdb_id)
                 .push_bind(item.video_id)
-                .push_bind(item.video_type)
-                .push_bind(item.video_title)
-                .push_bind(Json(item.genres));
+                .push_bind(&item.video_type)
+                .push_bind(&item.video_title)
+                .push_bind(Json(&item.genres));
         });
 
         let query = query_builder.build();
-        let num = query.execute(&self.0).await?.rows_affected();
+        let num = query.execute(&mut *tx).await?.rows_affected();
+
+        // Insert genres
+        let mut unique_genres = std::collections::HashMap::new();
+        for item in &items {
+            for genre in &item.genres {
+                unique_genres.insert(genre.id, &genre.name);
+            }
+        }
+
+        if !unique_genres.is_empty() {
+            let mut genre_builder: QueryBuilder<Sqlite> =
+                QueryBuilder::new("INSERT OR IGNORE INTO genre (id, name) ");
+            genre_builder.push_values(unique_genres.iter(), |mut b, (id, name)| {
+                b.push_bind(id).push_bind(name);
+            });
+            genre_builder.build().execute(&mut *tx).await?;
+        }
+
+        // Insert video_genre
+        let mut video_genres = Vec::new();
+        for item in &items {
+            for genre in &item.genres {
+                video_genres.push((item.todb_id, genre.id));
+            }
+        }
+
+        if !video_genres.is_empty() {
+            let mut vg_builder: QueryBuilder<Sqlite> =
+                QueryBuilder::new("INSERT OR IGNORE INTO video_genre (todb_id, genre_id) ");
+            vg_builder.push_values(video_genres, |mut b, (todb_id, genre_id)| {
+                b.push_bind(todb_id).push_bind(genre_id);
+            });
+            vg_builder.build().execute(&mut *tx).await?;
+        }
+
+        tx.commit().await?;
 
         Ok(num)
     }

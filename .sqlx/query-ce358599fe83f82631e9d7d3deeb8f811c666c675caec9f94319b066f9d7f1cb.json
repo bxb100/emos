@@ -1,20 +1,20 @@
 {
   "db_name": "SQLite",
-  "query": "select video.* from video, json_each(genres) where todb_id > ? and json_extract(json_each.value, '$.name') = ? order by todb_id limit ?",
+  "query": "\n            SELECT\n                v.todb_id as \"todb_id!\",\n                v.tmdb_id as \"tmdb_id!\",\n                v.video_id as \"video_id!\",\n                v.video_type,\n                v.video_title,\n                v.genres\n            FROM video v\n            JOIN video_genre vg ON v.todb_id = vg.todb_id\n            JOIN genre g ON vg.genre_id = g.id\n            WHERE v.todb_id > ? AND g.name = ?\n            ORDER BY v.todb_id\n            LIMIT ?\n            ",
   "describe": {
     "columns": [
       {
-        "name": "todb_id",
+        "name": "todb_id!",
         "ordinal": 0,
         "type_info": "Integer"
       },
       {
-        "name": "tmdb_id",
+        "name": "tmdb_id!",
         "ordinal": 1,
         "type_info": "Integer"
       },
       {
-        "name": "video_id",
+        "name": "video_id!",
         "ordinal": 2,
         "type_info": "Integer"
       },
@@ -38,7 +38,7 @@
       "Right": 3
     },
     "nullable": [
-      false,
+      true,
       false,
       false,
       true,
@@ -46,5 +46,5 @@
       true
     ]
   },
-  "hash": "95152f6bbd3f9a3bfa128d7463e0d290889884a600ced8ca8c791bad5481a839"
+  "hash": "ce358599fe83f82631e9d7d3deeb8f811c666c675caec9f94319b066f9d7f1cb"
 }
