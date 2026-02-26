@@ -1,0 +1,28 @@
+name: upload
+author: lemon
+description: upload to Cloudflare r2
+inputs:
+  CLOUDFLARE_R2_ACCOUNTID:
+    description: "Cloudflare R2 Account ID"
+    required: true
+  CLOUDFLARE_R2_KEY:
+    description: "Cloudflare R2 Access Key ID"
+    required: true
+  CLOUDFLARE_R2_SECRET:
+    description: "Cloudflare R2 Secret Access Key"
+    required: true
+runs:
+  using: "composite"
+  steps:
+    - name: Upload to R2
+      uses: bxb100/action-upload@main
+      with:
+        provider: s3
+        provider_options: |
+          root=/
+          bucket=emos
+          region=auto
+          endpoint=https://${{inputs.CLOUDFLARE_R2_ACCOUNTID}}.r2.cloudflarestorage.com
+          access_key_id=${{inputs.CLOUDFLARE_R2_KEY}}
+          secret_access_key=${{inputs.CLOUDFLARE_R2_SECRET}}
+        include: 'data/*.json'

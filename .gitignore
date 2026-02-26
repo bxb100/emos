@@ -39,5 +39,6 @@ emos-dev
 # DB files
 data/*.sqlite
 data/*.sqlite-*
+data/*.json
 # local cache
 !data/cache/*

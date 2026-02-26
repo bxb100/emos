@@ -103,8 +103,15 @@ jobs:
           BINARY_NAME: ${{ steps.check.outputs.binary_name }}
         run: |
           chmod +x "$BINARY_NAME"
-          ./"$BINARY_NAME" watch_hot_video --watch_id "$WATCH_ID" --douban_user_id "$DOUBAN_USER_ID"
+          ./"$BINARY_NAME" watch_hot_and_persistent
           rm -f .env
+
+      - name: Upload json
+        uses: ./.github/actions/upload
+        with:
+          CLOUDFLARE_R2_ACCOUNTID: ${{ secrets.CLOUDFLARE_R2_ACCOUNTID }}
+          CLOUDFLARE_R2_KEY: ${{ secrets.CLOUDFLARE_R2_KEY }}
+          CLOUDFLARE_R2_SECRET: ${{ secrets.CLOUDFLARE_R2_SECRET }}
 
       - name: Commit changes
         continue-on-error: true
