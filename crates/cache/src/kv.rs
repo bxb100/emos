@@ -275,6 +275,14 @@ impl<
         })
     }
 
+    pub async fn shutdown(self) -> Result<()>
+    where
+        T: 'static,
+        K: 'static,
+    {
+        tokio::task::spawn_blocking(move || self.save()).await?
+    }
+
     #[track_caller]
     pub fn for_each(&self, mut cb: impl FnMut(&K, T)) -> Result<()> {
         blocking::block_in_place("kv-foreach", || {
@@ -347,6 +355,7 @@ impl<
             if data.writes > 0 {
                 self.expire_old(&mut data);
                 self.save_unlocked(&data)?;
+                data.writes = 0;
             }
             data.data = None; // Flush mem
             Ok(())
@@ -455,6 +464,15 @@ impl<
     pub fn save(&self) -> Result<()> {
         self.cache.save()
     }
+
+    #[inline(always)]
+    pub async fn shutdown(self) -> Result<()>
+    where
+        T: 'static,
+        K: 'static,
+    {
+        self.cache.shutdown().await
+    }
 }
 
 impl<
@@ -463,7 +481,7 @@ impl<
 > Drop for TempCache<T, K>
 {
     fn drop(&mut self) {
-        if let Some(mut d) = self.inner.try_write_for(Duration::from_secs(8))
+        if let Some(mut d) = self.inner.try_write_for(Duration::from_millis(50))
             && d.writes > 0
         {
             self.expire_old(&mut d);
