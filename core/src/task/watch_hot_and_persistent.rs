@@ -17,8 +17,8 @@ pub async fn run() -> anyhow::Result<()> {
     let videos = watch_tmdb_hot().await?;
 
     let data = Dynamic {
-        name: "热门追更".to_string(),
-        cover: "https://raw.githubusercontent.com/bxb100/emos/refs/heads/main/data/cover.png"
+        name: "TMDB 热门".to_string(),
+        cover: "https://raw.githubusercontent.com/bxb100/emos/refs/heads/main/data/img/cover2.png"
             .to_string(),
         updated_at: Local::now().with_timezone(&Shanghai),
         videos,
