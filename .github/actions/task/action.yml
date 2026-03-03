@@ -9,6 +9,9 @@ inputs:
   task_args:
     description: "Arguments to pass to the binary when running the task"
     required: true
+  token:
+    description: 'A GitHub PAT'
+    required: true
 
 runs:
   using: composite
@@ -16,6 +19,8 @@ runs:
   steps:
     - name: Download binary
       shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
       run: |
         if gh release download latest -p "${{ inputs.binary_name }}" --skip-existing; then
             echo "Artifact downloaded successfully."
@@ -27,10 +32,10 @@ runs:
     - name: Gen EnvFile
       shell: bash
       run: |
-        echo "EMOS_TOKEN=$EMOS_TOKEN" >> .env
-        echo "EMOS_API_URL=$EMOS_API_URL" >> .env
-        echo "BANGUMI_ACCESS_TOKEN=$BANGUMI_ACCESS_TOKEN" >> .env
-        echo "TMDB_ACCESS_TOKEN=$TMDB_ACCESS_TOKEN" >> .env
+        echo "EMOS_TOKEN=${{ env.EMOS_TOKEN }}" >> .env
+        echo "EMOS_API_URL=${{ env.EMOS_API_URL }}" >> .env
+        echo "BANGUMI_ACCESS_TOKEN=${{ env.BANGUMI_ACCESS_TOKEN }}" >> .env
+        echo "TMDB_ACCESS_TOKEN=${{ env.TMDB_ACCESS_TOKEN }}" >> .env
 
     - name: Run task
       shell: bash
