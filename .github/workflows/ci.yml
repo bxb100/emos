@@ -1,7 +1,13 @@
 name: ci.yml
 on:
   push:
+    paths:
+      - 'core/**'
+      - 'crates/**'
   pull_request:
+    paths:
+      - 'core/**'
+      - 'crates/**'
   workflow_dispatch:
 
 jobs:

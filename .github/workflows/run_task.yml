@@ -2,15 +2,12 @@ name: run_task.yml
 on:
   workflow_dispatch:
   schedule:
-    - cron: "0 0 * * *"
+    - cron: "0 20 * * *"
 
 permissions:
   contents: write
 
 env:
-  WATCH_ID: ${{ secrets.WATCH_ID }}
-  DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
-
   EMOS_TOKEN: ${{ secrets.EMOS_TOKEN }}
   EMOS_API_URL: ${{ secrets.EMOS_API_URL }}
   TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
@@ -30,11 +27,11 @@ jobs:
           task_args: "tmdb_scifi_media"
           token: ${{ github.token }}
 
-      - name: Run watch_hot_and_persistent
+      - name: Run watch_hot_video
         uses: ./.github/actions/task
         with:
           binary_name: "emos"
-          task_args: "watch_hot_and_persistent"
+          task_args: "watch_hot_video --watch_id ${{ secrets.WATCH_ID }} --douban_user_id ${{ secrets.DOUBAN_USER_ID }}"
           token: ${{ github.token }}
 
       - name: Upload json

@@ -21,13 +21,7 @@ runs:
       shell: bash
       env:
         GH_TOKEN: ${{ inputs.token }}
-      run: |
-        if gh release download latest -p "${{ inputs.binary_name }}" --skip-existing; then
-            echo "Artifact downloaded successfully."
-        else
-            echo "Artifact download failed or release missing. Forcing build."
-            RUN_BUILD="true"
-        fi
+      run: gh release download latest -p "${{ inputs.binary_name }}" --skip-existing
 
     - name: Gen EnvFile
       shell: bash
@@ -40,6 +34,7 @@ runs:
     - name: Run task
       shell: bash
       env:
+        RUST_LOG: info
         BINARY_NAME: ${{ inputs.binary_name }}
       run: |
         chmod +x "$BINARY_NAME"
