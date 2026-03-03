@@ -1,0 +1,51 @@
+name: task
+author: lemon
+description: Run task
+
+inputs:
+  binary_name:
+    description: "Name of the binary to check for in the release"
+    required: true
+  task_args:
+    description: "Arguments to pass to the binary when running the task"
+    required: true
+  token:
+    description: 'A GitHub PAT'
+    required: true
+
+runs:
+  using: composite
+
+  steps:
+    - name: Download binary
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.token }}
+      run: |
+        if gh release download latest -p "${{ inputs.binary_name }}" --skip-existing; then
+            echo "Artifact downloaded successfully."
+        else
+            echo "Artifact download failed or release missing. Forcing build."
+            RUN_BUILD="true"
+        fi
+
+    - name: Gen EnvFile
+      shell: bash
+      run: |
+        echo "EMOS_TOKEN=${{ env.EMOS_TOKEN }}" >> .env
+        echo "EMOS_API_URL=${{ env.EMOS_API_URL }}" >> .env
+        echo "BANGUMI_ACCESS_TOKEN=${{ env.BANGUMI_ACCESS_TOKEN }}" >> .env
+        echo "TMDB_ACCESS_TOKEN=${{ env.TMDB_ACCESS_TOKEN }}" >> .env
+
+    - name: Run task
+      shell: bash
+      env:
+        BINARY_NAME: ${{ inputs.binary_name }}
+      run: |
+        chmod +x "$BINARY_NAME"
+        ./"$BINARY_NAME" ${{ inputs.task_args }}
+
+    - name: Remove env file
+      if: always()
+      shell: bash
+      run: rm -f .env

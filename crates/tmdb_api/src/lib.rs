@@ -1,9 +1,9 @@
 pub mod model;
 
+use std::env;
 use std::str::FromStr;
 
 use anyhow::Context;
-use dotenv_codegen::dotenv;
 use emos_utils::ReqwestExt;
 use model::MediaItem;
 use model::Movie;
@@ -29,7 +29,7 @@ impl Default for TmdbApi {
 
 impl TmdbApi {
     pub fn new() -> anyhow::Result<Self> {
-        let token = dotenv!("TMDB_ACCESS_TOKEN");
+        let token = env::var("TMDB_ACCESS_TOKEN")?;
         let mut headers = header::HeaderMap::new();
         let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {}", token))
             .context("Invalid TMDB_ACCESS_TOKEN format")?;
@@ -144,6 +144,45 @@ impl TmdbApi {
             .context("Failed to parse tv_popular response")?;
         Ok(result)
     }
+
+    pub async fn high_rated_scifi_movie(
+        &self,
+        page: Option<u64>,
+    ) -> anyhow::Result<PagedResult<Movie>> {
+        let url = format!("{}/discover/movie", self.base_url);
+
+        let request = self.client.get(&url).query(&[
+            ("sort_by", "vote_average.desc"),
+            ("vote_count.gte", "1000"),
+            ("vote_average.gte", "7.5"),
+            ("with_genres", "878"), // sci-fi
+            ("page", &page.unwrap_or(1).to_string()),
+        ]);
+
+        let result = request
+            .execute()
+            .await
+            .context("Failed to parse high_rated_scifi_movie response")?;
+        Ok(result)
+    }
+
+    pub async fn high_rated_scifi_tv(&self, page: Option<u64>) -> anyhow::Result<PagedResult<Tv>> {
+        let url = format!("{}/discover/tv", self.base_url);
+
+        let request = self.client.get(&url).query(&[
+            ("sort_by", "vote_average.desc"),
+            ("vote_count.gte", "1000"),
+            ("vote_average.gte", "7.5"),
+            ("with_genres", "10765"), // sci-fi & fantasy
+            ("page", &page.unwrap_or(1).to_string()),
+        ]);
+
+        let result = request
+            .execute()
+            .await
+            .context("Failed to parse high_rated_scifi_tv response")?;
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
@@ -183,6 +222,24 @@ mod tests {
         let api = TmdbApi::new()?;
         let result = api.tv_popular(None).await?;
         println!("Found {} popular TV shows", result.results.len());
+        assert!(!result.results.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_high_rated_scifi_movie() -> anyhow::Result<()> {
+        let api = TmdbApi::new()?;
+        let result = api.high_rated_scifi_movie(Some(1)).await?;
+        println!("Found {} high-rated sci-fi movies", result.total_results);
+        assert!(!result.results.is_empty());
+        Ok(())
+    }
+
+    #[tokio::test]
+    async fn test_high_rated_scifi_tv() -> anyhow::Result<()> {
+        let api = TmdbApi::new()?;
+        let result = api.high_rated_scifi_tv(Some(1)).await?;
+        println!("Found {} high-rated sci-fi TV shows", result.total_results);
         assert!(!result.results.is_empty());
         Ok(())
     }

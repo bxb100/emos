@@ -1,0 +1,49 @@
+name: run_task.yml
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 0 * * *"
+
+permissions:
+  contents: write
+
+env:
+  WATCH_ID: ${{ secrets.WATCH_ID }}
+  DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
+
+  EMOS_TOKEN: ${{ secrets.EMOS_TOKEN }}
+  EMOS_API_URL: ${{ secrets.EMOS_API_URL }}
+  TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
+  BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
+
+jobs:
+  run-and-upload:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run tmdb_scifi_media
+        uses: ./.github/actions/task
+        with:
+          binary_name: "emos"
+          task_args: "tmdb_scifi_media"
+          token: ${{ github.token }}
+
+      - name: Run watch_hot_and_persistent
+        uses: ./.github/actions/task
+        with:
+          binary_name: "emos"
+          task_args: "watch_hot_and_persistent"
+          token: ${{ github.token }}
+
+      - name: Upload json
+        uses: ./.github/actions/upload
+        with:
+          CLOUDFLARE_R2_ACCOUNTID: ${{ secrets.CLOUDFLARE_R2_ACCOUNTID }}
+          CLOUDFLARE_R2_KEY: ${{ secrets.CLOUDFLARE_R2_KEY }}
+          CLOUDFLARE_R2_SECRET: ${{ secrets.CLOUDFLARE_R2_SECRET }}
+
+      - uses: bxb100/.github/.github/actions/commit@main
+        with:
+          message: "chore: auto update"

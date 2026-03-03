@@ -1,5 +1,9 @@
 use chrono::DateTime;
+use chrono::Local;
+use chrono_tz::Asia::Shanghai;
 use chrono_tz::Tz;
+use emos_utils::fs::project_root;
+use emos_utils::fs::write_json_to_file;
 use serde::Deserialize;
 use serde::Serialize;
 
@@ -55,6 +59,23 @@ mod my_date_format {
         let dt = NaiveDateTime::parse_from_str(&s, FORMAT).map_err(serde::de::Error::custom)?;
         Ok(dt.and_local_timezone(Shanghai).unwrap())
     }
+}
+
+pub fn generate_dynamic_binding_file(
+    filename: &str,
+    name: &str,
+    cover: &str,
+    videos: Vec<Media>,
+) -> anyhow::Result<()> {
+    let data = Dynamic {
+        name: name.to_string(),
+        cover: cover.to_string(),
+        updated_at: Local::now().with_timezone(&Shanghai),
+        videos,
+    };
+
+    let path = project_root().join("data").join(filename);
+    write_json_to_file(&data, path)
 }
 
 #[test]

@@ -1,4 +1,5 @@
 pub mod fs;
+pub mod math;
 
 use std::fmt::Write;
 

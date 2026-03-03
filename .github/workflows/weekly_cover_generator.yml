@@ -1,0 +1,30 @@
+name: weekly_cover_generator.yml
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v7
+        with:
+          working-directory: lib/cover_generator
+
+      - name: Run script
+        working-directory: lib/cover_generator
+        run: |
+          uv run main.py 'scifi' '科幻' 'Sci-fi'
+
+      - uses: bxb100/.github/.github/actions/commit@main
+        with:
+          message: "chore: auto update"
