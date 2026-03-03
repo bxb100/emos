@@ -113,7 +113,7 @@ async fn to_json(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()> {
         }))
         .collect::<Vec<_>>();
 
-    videos.sort_by(|a, b| a.sort.cmp(&b.sort));
+    videos.sort_by_key(|m| m.sort);
 
     generate_dynamic_binding_file(
         filename,
