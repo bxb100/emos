@@ -790,6 +790,7 @@ name = "emos_utils"
 version = "0.1.0"
 dependencies = [
  "anyhow",
+ "futures-util",
  "reqwest",
  "serde",
  "serde_json",

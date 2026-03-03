@@ -1,0 +1,7 @@
+[project]
+name = "cover-generator"
+version = "0.1.0"
+description = "Generate cover images"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = ["logging>=0.4.9.6", "numpy>=2.4.2", "pillow>=12.1.1"]

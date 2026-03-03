@@ -1,4 +1,4 @@
-name: Emos Utils
+name: main.yml
 
 on:
   workflow_dispatch:
@@ -67,13 +67,6 @@ jobs:
         with:
           shared-key: "foreign-tv-cache"
 
-      - name: Gen EnvFile
-        run: |
-          echo "EMOS_TOKEN=${{ secrets.EMOS_TOKEN }}" >> .env
-          echo "EMOS_API_URL=${{ secrets.EMOS_API_URL }}" >> .env
-          echo "BANGUMI_ACCESS_TOKEN=${{ secrets.BANGUMI_ACCESS_TOKEN }}" >> .env
-          echo "TMDB_ACCESS_TOKEN=${{ secrets.TMDB_ACCESS_TOKEN }}" >> .env
-
       - name: Build Core
         if: steps.check.outputs.run_build == 'true'
         env:
@@ -95,29 +88,3 @@ jobs:
             echo "Creating release 'latest'..."
             gh release create latest "$BINARY_NAME" --title "Latest Release" --notes "Auto-generated release for caching" --prerelease
           fi
-
-      - name: Run Task
-        env:
-          WATCH_ID: ${{ secrets.WATCH_ID }}
-          DOUBAN_USER_ID: ${{ secrets.DOUBAN_USER_ID }}
-          BINARY_NAME: ${{ steps.check.outputs.binary_name }}
-        run: |
-          chmod +x "$BINARY_NAME"
-          ./"$BINARY_NAME" watch_hot_and_persistent
-          rm -f .env
-
-      - name: Upload json
-        uses: ./.github/actions/upload
-        with:
-          CLOUDFLARE_R2_ACCOUNTID: ${{ secrets.CLOUDFLARE_R2_ACCOUNTID }}
-          CLOUDFLARE_R2_KEY: ${{ secrets.CLOUDFLARE_R2_KEY }}
-          CLOUDFLARE_R2_SECRET: ${{ secrets.CLOUDFLARE_R2_SECRET }}
-
-      - name: Commit changes
-        continue-on-error: true
-        run: |
-          git config --global user.name "github-actions[bot]"
-          git config --global user.email "20685961+bxb100@users.noreply.github.com"
-          git add .
-          git commit -m 'CI: generated'
-          git push

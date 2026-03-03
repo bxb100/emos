@@ -1,6 +1,7 @@
 use std::pin::Pin;
 
 pub(crate) mod sync_video_list;
+mod tmdb_scifi_media;
 pub(crate) mod watch_basic_genre;
 mod watch_hot_and_persistent;
 pub(crate) mod watch_hot_video;

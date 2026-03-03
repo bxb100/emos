@@ -1,7 +1,7 @@
 use std::collections::HashMap;
+use std::env;
 
 use anyhow::Context;
-use dotenv_codegen::dotenv;
 use emos_utils::ReqwestExt;
 use reqwest::Client;
 use reqwest::header;
@@ -151,7 +151,7 @@ impl BangumiApi {
 
     pub fn with_url(base_url: &str) -> anyhow::Result<Self> {
         let mut headers = header::HeaderMap::new();
-        let access_token = format!("Bearer {}", dotenv!("BANGUMI_ACCESS_TOKEN"));
+        let access_token = format!("Bearer {}", env::var("BANGUMI_ACCESS_TOKEN")?);
         let mut value = header::HeaderValue::from_str(&access_token)?;
         value.set_sensitive(true);
         headers.insert(header::AUTHORIZATION, value);
