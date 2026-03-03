@@ -1,11 +1,8 @@
-use chrono::Local;
-use chrono_tz::Asia::Shanghai;
-use emos_api::watch::dynamic::Dynamic;
 use emos_api::watch::dynamic::Media;
 use emos_api::watch::dynamic::MediaType::Movie;
 use emos_api::watch::dynamic::MediaType::Tv;
+use emos_api::watch::dynamic::generate_dynamic_binding_file;
 use emos_tmdb_api::TmdbApi;
-use emos_utils::fs::project_root;
 use tracing::info;
 
 use crate::add_task;
@@ -13,19 +10,15 @@ use crate::add_task;
 add_task!("watch_hot_and_persistent", run);
 
 pub async fn run() -> anyhow::Result<()> {
-    let file_name = "watch_hot_and_persistent.json";
+    let filename = "watch_hot_and_persistent.json";
     let videos = watch_tmdb_hot().await?;
 
-    let data = Dynamic {
-        name: "TMDB 热门".to_string(),
-        cover: "https://raw.githubusercontent.com/bxb100/emos/refs/heads/main/data/img/cover2.png"
-            .to_string(),
-        updated_at: Local::now().with_timezone(&Shanghai),
+    generate_dynamic_binding_file(
+        filename,
+        "TMDB 热门",
+        "https://raw.githubusercontent.com/bxb100/emos/refs/heads/main/data/covers/tmdb_hot.jpg",
         videos,
-    };
-
-    let path = project_root().join("data").join(file_name);
-    tokio::fs::write(&path, serde_json::to_string(&data)?).await?;
+    )?;
 
     Ok(())
 }

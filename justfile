@@ -27,5 +27,8 @@ watch_hot_video:
 watch_hot_and_persistent:
     @cargo run watch_hot_and_persistent
 
+tmdb_scifi_media:
+    @cargo run tmdb_scifi_media
+
 dist:
     @cargo x dist --package emos --strip true

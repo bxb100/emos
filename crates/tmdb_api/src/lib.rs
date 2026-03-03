@@ -1,9 +1,9 @@
 pub mod model;
 
+use std::env;
 use std::str::FromStr;
 
 use anyhow::Context;
-use dotenv_codegen::dotenv;
 use emos_utils::ReqwestExt;
 use model::MediaItem;
 use model::Movie;
@@ -29,7 +29,7 @@ impl Default for TmdbApi {
 
 impl TmdbApi {
     pub fn new() -> anyhow::Result<Self> {
-        let token = dotenv!("TMDB_ACCESS_TOKEN");
+        let token = env::var("TMDB_ACCESS_TOKEN")?;
         let mut headers = header::HeaderMap::new();
         let mut auth_value = header::HeaderValue::from_str(&format!("Bearer {}", token))
             .context("Invalid TMDB_ACCESS_TOKEN format")?;

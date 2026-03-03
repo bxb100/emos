@@ -42,4 +42,3 @@ data/*.sqlite-*
 data/*.json
 # local cache
 !data/cache/*
-data/covers/*.png

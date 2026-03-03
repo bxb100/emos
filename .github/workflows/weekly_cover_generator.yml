@@ -24,11 +24,13 @@ jobs:
       - name: Run script
         working-directory: lib/cover_generator
         run: |
-          uv run main.py 'cs' '科幻' 'Sci-fi'
+          uv run main.py 'scifi' '科幻' 'Sci-fi'
 
-      - name: Upload to R2
-        uses: ./.github/actions/upload
-        with:
-          CLOUDFLARE_R2_ACCOUNTID: ${{ secrets.CLOUDFLARE_R2_ACCOUNTID }}
-          CLOUDFLARE_R2_KEY: ${{ secrets.CLOUDFLARE_R2_KEY }}
-          CLOUDFLARE_R2_SECRET: ${{ secrets.CLOUDFLARE_R2_SECRET }}
+      - name: Commit changes
+        continue-on-error: true
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "20685961+bxb100@users.noreply.github.com"
+          git add .
+          git commit -m 'CI: generated'
+          git push
