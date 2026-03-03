@@ -25,4 +25,6 @@ runs:
           endpoint=https://${{inputs.CLOUDFLARE_R2_ACCOUNTID}}.r2.cloudflarestorage.com
           access_key_id=${{inputs.CLOUDFLARE_R2_KEY}}
           secret_access_key=${{inputs.CLOUDFLARE_R2_SECRET}}
-        include: 'data/*.json'
+        include: |
+          data/*.json
+          data/*.png

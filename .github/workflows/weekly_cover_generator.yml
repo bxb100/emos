@@ -1,0 +1,34 @@
+name: weekly_cover_generator.yml
+
+on:
+  schedule:
+    - cron: "0 0 * * 0"
+  workflow_dispatch:
+
+permissions:
+  discussions: write
+  contents: read
+
+jobs:
+  generate-and-publish:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: astral-sh/setup-uv@v7
+        with:
+          working-directory: lib/cover_generator
+
+      - name: Run script
+        working-directory: lib/cover_generator
+        run: |
+          uv run main.py 'cs' '科幻' 'Sci-fi'
+
+      - name: Upload to R2
+        uses: ./.github/actions/upload
+        with:
+          CLOUDFLARE_R2_ACCOUNTID: ${{ secrets.CLOUDFLARE_R2_ACCOUNTID }}
+          CLOUDFLARE_R2_KEY: ${{ secrets.CLOUDFLARE_R2_KEY }}
+          CLOUDFLARE_R2_SECRET: ${{ secrets.CLOUDFLARE_R2_SECRET }}
