@@ -209,7 +209,7 @@ async fn filter_douban_by_cache(
     let cache = app.cache.deref();
 
     // empty data fallback to re-fetch
-    if let Ok(Some(data)) = cache.get(&id)
+    if let Ok(Some(data)) = cache.get(&id).await
         && !data.is_empty()
     {
         debug!("{id} Cache hit: {:?} ", data);
@@ -263,7 +263,7 @@ async fn filter_douban_by_cache(
         }
     };
 
-    cache.set(id, &v)?;
+    cache.set(id, &v).await?;
     Ok(v)
 }
 

@@ -728,7 +728,6 @@ dependencies = [
  "brotli",
  "delegate",
  "emos_utils",
- "parking_lot",
  "rayon",
  "rmp-serde",
  "serde",
