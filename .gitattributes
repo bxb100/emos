@@ -1,0 +1,20 @@
+*.png  -text
+*.jpg  -text
+*.jpeg -text
+*.svg  -text
+
+# LFS files
+data/cache/simple_cache.mpbr filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/9.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/tmdb_hot.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/1.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/10.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/7.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/2.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/3.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/4.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/5.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/6.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi/8.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot.png filter=lfs diff=lfs merge=lfs -text
+data/covers/scifi.png filter=lfs diff=lfs merge=lfs -text
