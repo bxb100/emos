@@ -118,7 +118,7 @@ async fn to_json(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()> {
     generate_dynamic_binding_file(
         filename,
         "TMDB 科幻",
-        "https://raw.githubusercontent.com/bxb100/emos/refs/heads/main/data/covers/scifi.png",
+        "https://media.githubusercontent.com/media/bxb100/emos/refs/heads/main/data/covers/scifi.png",
         videos,
     )?;
 
