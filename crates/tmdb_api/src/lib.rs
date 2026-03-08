@@ -153,7 +153,7 @@ impl TmdbApi {
 
         let request = self.client.get(&url).query(&[
             ("sort_by", "vote_average.desc"),
-            ("vote_count.gte", "1000"),
+            ("vote_count.gte", "500"),
             ("vote_average.gte", "7.5"),
             ("with_genres", "878"), // sci-fi
             ("page", &page.unwrap_or(1).to_string()),
@@ -171,7 +171,7 @@ impl TmdbApi {
 
         let request = self.client.get(&url).query(&[
             ("sort_by", "vote_average.desc"),
-            ("vote_count.gte", "1000"),
+            ("vote_count.gte", "500"),
             ("vote_average.gte", "7.5"),
             ("with_genres", "10765"), // sci-fi & fantasy
             ("page", &page.unwrap_or(1).to_string()),

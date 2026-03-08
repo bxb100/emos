@@ -71,13 +71,13 @@ async fn download_posters(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()
         .iter()
         .filter(|m| m.poster_path.is_some())
         .take(5)
-        .map(|m| m.poster_path.clone().unwrap())
+        .filter_map(|m| m.poster_path.as_ref())
         .chain(
             movie
                 .iter()
                 .filter(|m| m.poster_path.is_some())
                 .take(5)
-                .map(|m| m.poster_path.clone().unwrap()),
+                .filter_map(|m| m.poster_path.as_ref()),
         )
         .collect::<Vec<_>>();
 
