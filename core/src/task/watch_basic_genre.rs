@@ -4,13 +4,12 @@ use emos_api::watch::BatchType;
 use emos_api::watch::UpdateWatchVideoBatchItem;
 use emos_dao::Dao;
 use emos_dao::video::Video;
+use emos_task_macro::add_task;
 use futures_util::StreamExt;
 use futures_util::pin_mut;
 use tokio::time::Duration;
 use tokio::time::sleep;
 use tracing::info;
-
-use crate::add_task;
 
 add_task!(
     "watch_basic_genre",

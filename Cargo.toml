@@ -19,6 +19,7 @@ emos_tmdb_api = { path = "crates/tmdb_api" }
 emos_dao = { path = "crates/dao" }
 emos_utils = { path = "crates/utils" }
 emos_cache = { path = "crates/cache" }
+emos_task_macro = { path = "crates/task_macro" }
 
 # others
 reqwest = { version = "0.13", features = ["json", "cookies", "query", "form"] }

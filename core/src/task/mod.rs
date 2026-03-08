@@ -13,38 +13,5 @@ pub(crate) struct Task {
     pub(crate) args: &'static [&'static str],
     pub(crate) run: TaskFn,
 }
-#[macro_export]
-macro_rules! add_task {
-    (
-        $name:literal,
-        $fun:ident $(,)?
-        $($var:ident : $ty:ty = $arg_name:literal ),*
-    ) => {
-        inventory::submit! {
-            #[allow(unused)]
-            $crate::task::Task {
-                name: $name,
-                args: {
-                    const ARGS: &[&str] = &[$($arg_name),*];
-                    ARGS
-                },
-                run: |arg: &clap::ArgMatches| {
-                    $(
-                        let $var: $ty = arg
-                            .get_one::<$ty>($arg_name)
-                            .expect("missing required argument")
-                            .to_owned();
-                    )*
-                    Box::pin(async move {
-                        anyhow::Context::context(
-                            $fun($($var),*).await,
-                            $name,
-                        ).unwrap();
-                    })
-                }
-            }
-        }
-    };
-}
 
 inventory::collect!(Task);

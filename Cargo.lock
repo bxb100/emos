@@ -669,20 +669,19 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-stream",
- "chrono",
- "chrono-tz",
  "clap",
  "emos_api",
  "emos_cache",
  "emos_dao",
  "emos_douban_api",
+ "emos_task_macro",
  "emos_tmdb_api",
  "emos_utils",
  "futures-util",
  "inventory",
+ "rand 0.10.0",
  "regex",
  "serde",
- "serde_json",
  "tokio",
  "tracing",
  "tracing-subscriber",
@@ -770,6 +769,14 @@ dependencies = [
  "sha1",
  "tokio",
  "urlencoding",
+]
+
+[[package]]
+name = "emos_task_macro"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.114",
 ]
 
 [[package]]

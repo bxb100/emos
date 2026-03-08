@@ -2,10 +2,9 @@ use emos_api::watch::dynamic::Media;
 use emos_api::watch::dynamic::MediaType::Movie;
 use emos_api::watch::dynamic::MediaType::Tv;
 use emos_api::watch::dynamic::generate_dynamic_binding_file;
+use emos_task_macro::add_task;
 use emos_tmdb_api::TmdbApi;
 use tracing::info;
-
-use crate::add_task;
 
 add_task!("watch_hot_and_persistent", run);
 

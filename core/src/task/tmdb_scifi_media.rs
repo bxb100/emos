@@ -4,6 +4,7 @@ use anyhow::Result;
 use emos_api::watch::dynamic::Media;
 use emos_api::watch::dynamic::MediaType;
 use emos_api::watch::dynamic::generate_dynamic_binding_file;
+use emos_task_macro::add_task;
 use emos_tmdb_api::TmdbApi;
 use emos_tmdb_api::model::Movie;
 use emos_tmdb_api::model::PagedResult;
@@ -11,11 +12,11 @@ use emos_tmdb_api::model::Tv;
 use emos_utils::fs::batch_download_imgs;
 use emos_utils::fs::project_root;
 use emos_utils::math::normalize_to_1_100;
+use rand::rng;
+use rand::seq::IteratorRandom;
 use tracing::debug;
 
-use crate::add_task;
-
-add_task!("tmdb_scifi_media", task);
+add_task!("tmdb_scifi_media", task, should_download_posters: bool = "flag");
 
 macro_rules! load_all {
     ($api:expr, $fun:expr, $type:ty) => {{
@@ -40,7 +41,7 @@ macro_rules! load_all {
     }};
 }
 
-pub async fn task() -> Result<()> {
+pub async fn task(should_download_posters: bool) -> Result<()> {
     let api = TmdbApi::new()?;
 
     let tv = load_all!(&api, TmdbApi::high_rated_scifi_tv, Tv);
@@ -51,7 +52,7 @@ pub async fn task() -> Result<()> {
     let tv = Arc::new(tv);
     let movie = Arc::new(movie);
 
-    {
+    if should_download_posters {
         let tv = Arc::clone(&tv);
         let movie = Arc::clone(&movie);
         tokio::spawn(async move { download_posters(tv, movie).await }).await??;
@@ -69,17 +70,9 @@ pub async fn task() -> Result<()> {
 async fn download_posters(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()> {
     let posters = tv
         .iter()
-        .filter(|m| m.poster_path.is_some())
-        .take(5)
-        .filter_map(|m| m.poster_path.as_ref())
-        .chain(
-            movie
-                .iter()
-                .filter(|m| m.poster_path.is_some())
-                .take(5)
-                .filter_map(|m| m.poster_path.as_ref()),
-        )
-        .collect::<Vec<_>>();
+        .filter_map(|t| t.poster_path.as_ref())
+        .chain(movie.iter().filter_map(|m| m.poster_path.as_ref()))
+        .sample(&mut rng(), 10);
 
     // https://developer.themoviedb.org/docs/image-basics
     let base_url = "https://image.tmdb.org/t/p/original";
@@ -127,5 +120,5 @@ async fn to_json(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()> {
 
 #[tokio::test]
 async fn test_load_all() {
-    task().await.unwrap();
+    task(false).await.unwrap();
 }

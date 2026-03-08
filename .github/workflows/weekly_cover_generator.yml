@@ -17,6 +17,13 @@ jobs:
         with:
           lfs: true
 
+      - name: Generate scifi imgs
+        uses: ./.github/actions/task
+        with:
+          binary_name: "emos"
+          task_args: "tmdb_scifi_media --flag"
+          token: ${{ github.token }}
+
       - name: Set up Python
         uses: astral-sh/setup-uv@v7
         with:

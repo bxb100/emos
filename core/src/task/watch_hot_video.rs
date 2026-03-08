@@ -9,6 +9,7 @@ use emos_douban_api::DoubanApi;
 use emos_douban_api::model::TypeField;
 use emos_douban_api::model::top_list::SubjectCollectionItem;
 use emos_douban_api::model::top_list::TopList;
+use emos_task_macro::add_task;
 use emos_tmdb_api::TmdbApi;
 use emos_tmdb_api::model::MediaItem::Movie;
 use emos_tmdb_api::model::MediaItem::Tv;
@@ -21,9 +22,7 @@ use tracing::debug;
 use tracing::error;
 use tracing::info;
 
-use crate::add_task;
-
-add_task!("watch_hot_video", run, watch_id: String = "watch_id", douban_user_id: String = "douban_user_id");
+add_task!("watch_hot_video", run, watch_id: String = "watch_id", _douban_user_id: String = "douban_user_id");
 
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 struct CacheData {
@@ -47,8 +46,8 @@ struct App {
     cache: Arc<SimpleCache>,
 }
 
-pub async fn run(watch_id: String, douban_user_id: String) -> anyhow::Result<()> {
-    let mut data = get_douban_video(Some(douban_user_id)).await?;
+pub async fn run(watch_id: String, douban_user_id: Option<String>) -> anyhow::Result<()> {
+    let mut data = get_douban_video(douban_user_id).await?;
 
     let tmdb_api = TmdbApi::new()?;
     get_tmdb_video(&tmdb_api).await?.into_iter().for_each(|id| {

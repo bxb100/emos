@@ -23,11 +23,24 @@ fn build_cli() -> Command {
         let mut sub = Command::new(task.name);
 
         for &arg_name in task.args {
+            let mut arg_name = arg_name;
+            let mut action = ArgAction::Set;
+            let mut required = true;
+
+            if arg_name.starts_with('?') {
+                arg_name = &arg_name[1..];
+                action = ArgAction::SetTrue;
+                required = false;
+            } else if arg_name.starts_with('_') {
+                arg_name = &arg_name[1..];
+                required = false;
+            }
+
             sub = sub.arg(
                 Arg::new(arg_name)
                     .long(arg_name)
-                    .action(ArgAction::Set)
-                    .required(true),
+                    .action(action)
+                    .required(required),
             );
         }
 
