@@ -8,6 +8,12 @@ on:
 permissions:
   contents: write
 
+env:
+  EMOS_TOKEN: ${{ secrets.EMOS_TOKEN }}
+  EMOS_API_URL: ${{ secrets.EMOS_API_URL }}
+  TMDB_ACCESS_TOKEN: ${{ secrets.TMDB_ACCESS_TOKEN }}
+  BANGUMI_ACCESS_TOKEN: ${{ secrets.BANGUMI_ACCESS_TOKEN }}
+
 jobs:
   generate-and-publish:
     runs-on: ubuntu-latest
