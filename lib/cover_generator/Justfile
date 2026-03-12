@@ -1,4 +1,4 @@
 #!/usr/bin/env just --justfile
 
 gen namespace zh en:
-   uv run main.py {{namespace}} {{zh}} {{en}}
+   @uv run main.py {{namespace}} {{zh}} {{en}}

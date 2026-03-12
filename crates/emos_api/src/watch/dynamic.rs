@@ -24,7 +24,7 @@ pub struct Media {
     pub sort: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize, Clone)]
+#[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
 #[serde(rename_all = "lowercase")]
 pub enum MediaType {
     Tv,

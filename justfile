@@ -32,11 +32,11 @@ tmdb_scifi_media:
 
 tmdb_download_cover:
     @echo '{{ style("warning") }}This receipt build for test{{ NORMAL }}'
-    @cargo run tmdb_download_cover --video --id 1389149 --id 991494 --id 4247 --id 1319280 --id 1233413 --id 1305781 --id 798645 --id 911430 --id 1499984 --id 1381027 --namespace cs
+    @cargo run tmdb_download_cover --video --id 1389149 --id 991494 --id 4247 --id 1319280 --id 1233413 --namespace cs
+    @cargo run tmdb_download_cover --id 1408 --id 59941 --id 65733 --id 1399 --id 2734 --namespace cs
 
-generate_cover: tmdb_download_cover
-    @echo '{{ style("warning") }}This receipt build for test{{ NORMAL }}'
-    @just --justfile ./lib/cover_generator/Justfile gen cs "测试" "test"
+gen namespace zh en:
+    @just --justfile ./lib/cover_generator/Justfile gen {{namespace}} {{zh}} {{en}}
 
 dist:
     @cargo x dist --package emos --strip true

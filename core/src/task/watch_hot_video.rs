@@ -34,6 +34,24 @@ pub async fn run(douban_user_id: Option<String>) -> anyhow::Result<()> {
     let tmdb_api = TmdbApi::new()?;
     data.extend(get_tmdb_video(&tmdb_api).await?);
 
+    {
+        let m = data
+            .iter()
+            .filter(|m| m.tmdb_type == MediaType::Movie)
+            .take(5)
+            .map(|m| m.tmdb_id.to_string())
+            .collect::<Vec<_>>();
+        let t = data
+            .iter()
+            .filter(|m| m.tmdb_type == MediaType::Tv)
+            .take(5)
+            .map(|m| m.tmdb_id.to_string())
+            .collect::<Vec<_>>();
+
+        crate::task::tmdb_download_cover::task(true, m, "hot".to_string()).await?;
+        crate::task::tmdb_download_cover::task(false, t, "hot".to_string()).await?;
+    }
+
     generate_dynamic_binding_file(
         "watch_hot_video.json",
         "热门追更",

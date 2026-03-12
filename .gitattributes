@@ -2,7 +2,6 @@
 *.jpg  -text
 *.jpeg -text
 *.svg  -text
-
 # LFS files
 data/cache/simple_cache.mpbr filter=lfs diff=lfs merge=lfs -text
 data/covers/scifi/9.jpg filter=lfs diff=lfs merge=lfs -text
@@ -18,3 +17,13 @@ data/covers/scifi/6.jpg filter=lfs diff=lfs merge=lfs -text
 data/covers/scifi/8.jpg filter=lfs diff=lfs merge=lfs -text
 data/covers/hot.png filter=lfs diff=lfs merge=lfs -text
 data/covers/scifi.png filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/10.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/2.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/4.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/7.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/8.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/9.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/1.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/6.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/3.jpg filter=lfs diff=lfs merge=lfs -text
+data/covers/hot/5.jpg filter=lfs diff=lfs merge=lfs -text
