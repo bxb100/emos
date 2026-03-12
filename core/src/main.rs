@@ -28,7 +28,8 @@ fn build_cli() -> Command {
             let (action, required) = match task_arg.kind {
                 ArgKind::Flag => (ArgAction::SetTrue, false),
                 ArgKind::Optional => (ArgAction::Set, false),
-                _ => (ArgAction::Set, true),
+                ArgKind::Required => (ArgAction::Set, true),
+                ArgKind::Many => (ArgAction::Append, true),
             };
 
             sub = sub.arg(

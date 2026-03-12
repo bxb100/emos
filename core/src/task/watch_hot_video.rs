@@ -2,8 +2,9 @@ use std::ops::Deref;
 use std::sync::Arc;
 
 use anyhow::bail;
-use emos_api::watch::BatchType;
-use emos_api::watch::UpdateWatchVideoBatchItem;
+use emos_api::watch::dynamic::Media;
+use emos_api::watch::dynamic::MediaType;
+use emos_api::watch::dynamic::generate_dynamic_binding_file;
 use emos_cache::Cache;
 use emos_douban_api::DoubanApi;
 use emos_douban_api::model::TypeField;
@@ -16,59 +17,29 @@ use emos_tmdb_api::model::MediaItem::Tv;
 use futures_util::StreamExt;
 use futures_util::stream;
 use regex::Regex;
-use serde::Deserialize;
-use serde::Serialize;
 use tracing::debug;
-use tracing::error;
 use tracing::info;
 
-#[derive(Debug, Serialize, Deserialize, Copy, Clone)]
-struct CacheData {
-    #[serde(rename = "type")]
-    pub r#type: BatchType,
-    pub value: u64,
-}
+type SimpleCache = Cache<String, Vec<Media>>;
 
-impl From<&CacheData> for UpdateWatchVideoBatchItem {
-    fn from(value: &CacheData) -> Self {
-        UpdateWatchVideoBatchItem {
-            r#type: value.r#type,
-            value: value.value.to_string(),
-        }
-    }
-}
-
-type SimpleCache = Cache<String, Vec<CacheData>>;
 struct App {
     tmdb_api: Arc<TmdbApi>,
     cache: Arc<SimpleCache>,
 }
 
 #[add_task("watch_hot_video")]
-pub async fn run(watch_id: String, douban_user_id: Option<String>) -> anyhow::Result<()> {
+pub async fn run(douban_user_id: Option<String>) -> anyhow::Result<()> {
     let mut data = get_douban_video(douban_user_id).await?;
 
     let tmdb_api = TmdbApi::new()?;
-    get_tmdb_video(&tmdb_api).await?.into_iter().for_each(|id| {
-        data.push(CacheData {
-            r#type: BatchType::TmdbTv,
-            value: id,
-        });
-    });
+    data.extend(get_tmdb_video(&tmdb_api).await?);
 
-    let emos_api = emos_api::EmosApi::new()?;
-    // chunk 200 and send
-    for batch in data.chunks(200) {
-        if let Err(e) = emos_api
-            .batch_update_watch_videos(&watch_id, batch.iter().map(Into::into).collect::<Vec<_>>())
-            .await
-        {
-            error!("Failed to update watch videos: {:?}", batch);
-            bail!(e);
-        }
-
-        tokio::time::sleep(std::time::Duration::from_secs(10)).await;
-    }
+    generate_dynamic_binding_file(
+        "watch_hot_video.json",
+        "热门追更",
+        "https://media.githubusercontent.com/media/bxb100/emos/refs/heads/main/data/covers/hot.png",
+        data,
+    )?;
 
     Ok(())
 }
@@ -116,7 +87,7 @@ async fn load_chosen_douban_collection_medias(
     Ok(res)
 }
 
-async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<CacheData>> {
+async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<Media>> {
     let api = DoubanApi::new();
     let res = load_chosen_douban_collection_medias(&api).await?;
 
@@ -179,16 +150,26 @@ async fn get_douban_video(douban_user_id: Option<String>) -> anyhow::Result<Vec<
     Ok(video_res)
 }
 
-async fn get_tmdb_video(api: &TmdbApi) -> anyhow::Result<Vec<u64>> {
+async fn get_tmdb_video(api: &TmdbApi) -> anyhow::Result<Vec<Media>> {
     let mut res = vec![];
 
     // on purpose to sequentially fetch
     for _page in 1..=5 {
         if let Ok(data) = api.tv_popular(Some(_page)).await {
-            res.extend(data.results.iter().map(|s| s.id))
+            res.extend(data.results.iter().map(|s| Media {
+                tmdb_id: s.id,
+                tmdb_type: MediaType::Tv,
+                title: s.name.to_string(),
+                sort: 100,
+            }))
         };
         if let Ok(data) = api.movie_popular(Some(_page)).await {
-            res.extend(data.results.iter().map(|s| s.id))
+            res.extend(data.results.iter().map(|s| Media {
+                tmdb_id: s.id,
+                tmdb_type: MediaType::Movie,
+                title: s.title.to_string(),
+                sort: 100,
+            }))
         };
 
         info!("Fetched {} items", res.len());
@@ -202,7 +183,7 @@ async fn filter_douban_by_cache(
     item_id: &str,
     item_title: &str,
     year: Option<impl AsRef<str>>,
-) -> anyhow::Result<Vec<CacheData>> {
+) -> anyhow::Result<Vec<Media>> {
     let id = format!("douban_video_{}", item_id);
     let cache = app.cache.deref();
 
@@ -222,9 +203,11 @@ async fn filter_douban_by_cache(
             info!("Movie {id} {title} found {}", res.total_results);
             res.results
                 .iter()
-                .map(|m| CacheData {
-                    r#type: BatchType::TmdbMovie,
-                    value: m.id,
+                .map(|m| Media {
+                    tmdb_id: m.id,
+                    tmdb_type: MediaType::Movie,
+                    title: m.title.to_owned(),
+                    sort: 100,
                 })
                 .collect::<Vec<_>>()
         }
@@ -233,9 +216,11 @@ async fn filter_douban_by_cache(
             info!("TV {id} {title} found {}", res.total_results);
             res.results
                 .iter()
-                .map(|m| CacheData {
-                    r#type: BatchType::TmdbTv,
-                    value: m.id,
+                .map(|m| Media {
+                    tmdb_id: m.id,
+                    tmdb_type: MediaType::Tv,
+                    title: m.name.to_owned(),
+                    sort: 100,
                 })
                 .collect::<Vec<_>>()
         }
@@ -247,13 +232,17 @@ async fn filter_douban_by_cache(
                 .filter(|e| matches!(e, Tv(_) | Movie(_)))
                 .take(3)
                 .filter_map(|e| match e {
-                    Tv(t) => Some(CacheData {
-                        r#type: BatchType::TmdbTv,
-                        value: t.id,
+                    Tv(t) => Some(Media {
+                        tmdb_id: t.id,
+                        tmdb_type: MediaType::Tv,
+                        title: t.name.clone(),
+                        sort: 100,
                     }),
-                    Movie(m) => Some(CacheData {
-                        r#type: BatchType::TmdbMovie,
-                        value: m.id,
+                    Movie(m) => Some(Media {
+                        tmdb_id: m.id,
+                        tmdb_type: MediaType::Movie,
+                        title: m.title.clone(),
+                        sort: 100,
                     }),
                     _ => None,
                 })

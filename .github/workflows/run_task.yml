@@ -33,7 +33,7 @@ jobs:
         uses: ./.github/actions/task
         with:
           binary_name: "emos"
-          task_args: "watch_hot_video --watch_id ${{ secrets.WATCH_ID }} --douban_user_id ${{ secrets.DOUBAN_USER_ID }}"
+          task_args: "watch_hot_video --douban_user_id ${{ secrets.DOUBAN_USER_ID }}"
           token: ${{ github.token }}
 
       - name: Upload json

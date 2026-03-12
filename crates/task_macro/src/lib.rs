@@ -85,7 +85,6 @@ fn get_option_inner_type(ty: &Type) -> Option<&Type> {
     None
 }
 
-#[allow(unused)]
 fn get_vec_inner_type(ty: &Type) -> Option<&Type> {
     if let Type::Path(tp) = ty
         && let Some(seg) = tp.path.segments.last()
@@ -154,6 +153,21 @@ pub fn add_task(attr: TokenStream, item: TokenStream) -> TokenStream {
                     .get_one::<#inner>(#cli_name)
                     .map(|v| v.to_owned());
             });
+        } else if let Some(inner) = get_vec_inner_type(ty) {
+            // Vec<T> -> get_many
+            arg_metas.push(quote! {
+                crate::task::TaskArg {
+                    name: #cli_name,
+                    kind: crate::task::ArgKind::Many,
+                }
+            });
+            extractions.push(quote! {
+                let #var: Vec<#inner> = arg
+                    .get_many::<#inner>(#cli_name)
+                    .expect(concat!(stringify!(#cli_name), " is required"))
+                    .map(|v| v.to_owned())
+                    .collect();
+            });
         } else {
             // T -> Required
             arg_metas.push(quote! {
@@ -165,7 +179,7 @@ pub fn add_task(attr: TokenStream, item: TokenStream) -> TokenStream {
             extractions.push(quote! {
                 let #var: #ty = arg
                     .get_one::<#ty>(#cli_name)
-                    .expect("missing required argument")
+                    .expect(concat!(stringify!(#cli_name), " is required"))
                     .to_owned();
             });
         }

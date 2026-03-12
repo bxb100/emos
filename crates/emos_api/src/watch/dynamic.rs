@@ -16,7 +16,7 @@ pub struct Dynamic {
     pub videos: Vec<Media>,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Media {
     pub tmdb_id: u64,
     pub tmdb_type: MediaType,
@@ -24,7 +24,7 @@ pub struct Media {
     pub sort: u32,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, Clone)]
 #[serde(rename_all = "lowercase")]
 pub enum MediaType {
     Tv,

@@ -74,11 +74,10 @@ async fn download_posters(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()
         .sample(&mut rng(), 10);
 
     // https://developer.themoviedb.org/docs/image-basics
-    let base_url = "https://image.tmdb.org/t/p/original";
     let imgs = posters
         .iter()
         // poster_path like `/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg`
-        .map(|p| format!("{}{}", base_url, p))
+        .map(|p| format!("{}{}", emos_tmdb_api::IMAGE_BASE_URL, p))
         .collect::<Vec<_>>();
 
     batch_download_imgs(imgs, &project_root().join("data/covers/scifi")).await?;

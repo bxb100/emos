@@ -13,6 +13,7 @@ use reqwest::Client;
 use reqwest::header;
 
 const BASE_URL: &str = "https://api.themoviedb.org/3";
+pub const IMAGE_BASE_URL: &str = "https://image.tmdb.org/t/p/original";
 
 pub struct TmdbApi {
     client: Client,
@@ -183,6 +184,32 @@ impl TmdbApi {
             .context("Failed to parse high_rated_scifi_tv response")?;
         Ok(result)
     }
+
+    /// Get movie details by TMDB ID
+    /// https://developer.themoviedb.org/reference/movie-details
+    pub async fn get_movie(&self, movie_id: &str) -> anyhow::Result<Movie> {
+        let url = format!("{}/movie/{}", self.base_url, movie_id);
+        let result = self
+            .client
+            .get(&url)
+            .execute()
+            .await
+            .context("Failed to parse get_movie response")?;
+        Ok(result)
+    }
+
+    /// Get TV series details by TMDB ID
+    /// https://developer.themoviedb.org/reference/tv-series-details
+    pub async fn get_tv(&self, tv_id: &str) -> anyhow::Result<Tv> {
+        let url = format!("{}/tv/{}", self.base_url, tv_id);
+        let result = self
+            .client
+            .get(&url)
+            .execute()
+            .await
+            .context("Failed to parse get_tv response")?;
+        Ok(result)
+    }
 }
 
 #[cfg(test)]
@@ -243,6 +270,24 @@ mod tests {
         assert!(!result.results.is_empty());
         Ok(())
     }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_get_movie() -> anyhow::Result<()> {
+        let api = TmdbApi::new()?;
+        let movie = api.get_movie("550").await?; // Fight Club
+        println!("Movie: {} (id: {})", movie.title, movie.id);
+        assert_eq!(movie.id, 550);
+        Ok(())
+    }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_get_tv() -> anyhow::Result<()> {
+        let api = TmdbApi::new()?;
+        let tv = api.get_tv("1399").await?; // Breaking Bad
+        println!("TV: {} (id: {})", tv.name, tv.id);
+        assert_eq!(tv.id, 1399);
+        Ok(())
+    }
 }
-// Force rebuild
-// Force rebuild
