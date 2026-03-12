@@ -1,7 +1,6 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use anyhow::bail;
 use emos_api::watch::dynamic::Media;
 use emos_api::watch::dynamic::MediaType;
 use emos_api::watch::dynamic::generate_dynamic_binding_file;
@@ -32,24 +31,23 @@ pub async fn run(douban_user_id: Option<String>) -> anyhow::Result<()> {
     let mut data = get_douban_video(douban_user_id).await?;
 
     let tmdb_api = TmdbApi::new()?;
-    data.extend(get_tmdb_video(&tmdb_api).await?);
+    let tmdb_data = get_tmdb_video(&tmdb_api).await?;
+    debug!("tmdb_data: {:?}", tmdb_data);
+    data.extend(tmdb_data);
 
     {
-        let m = data
-            .iter()
-            .filter(|m| m.tmdb_type == MediaType::Movie)
-            .take(5)
-            .map(|m| m.tmdb_id.to_string())
-            .collect::<Vec<_>>();
-        let t = data
-            .iter()
-            .filter(|m| m.tmdb_type == MediaType::Tv)
-            .take(5)
-            .map(|m| m.tmdb_id.to_string())
-            .collect::<Vec<_>>();
+        let download_cover = |data: &Vec<Media>, t: MediaType| {
+            let m = data
+                .iter()
+                .filter(|m| m.tmdb_type == t)
+                .take(5)
+                .map(|m| m.tmdb_id.to_string())
+                .collect::<Vec<_>>();
+            crate::task::tmdb_download_cover::task(t == MediaType::Movie, m, "hot".to_string())
+        };
 
-        crate::task::tmdb_download_cover::task(true, m, "hot".to_string()).await?;
-        crate::task::tmdb_download_cover::task(false, t, "hot".to_string()).await?;
+        download_cover(&data, MediaType::Movie).await?;
+        download_cover(&data, MediaType::Tv).await?;
     }
 
     generate_dynamic_binding_file(
@@ -206,70 +204,71 @@ async fn filter_douban_by_cache(
     let cache = app.cache.deref();
 
     // empty data fallback to re-fetch
-    if let Ok(Some(data)) = cache.get(&id).await
+    let medias = if let Ok(Some(data)) = cache.get(&id).await
         && !data.is_empty()
     {
-        debug!("{id} Cache hit: {:?} ", data);
-        bail!("cache hit");
-    }
+        debug!("Cache hit for {}: {:?}", id, data);
+        data
+    } else {
+        let title = regex_replace_season(item_title);
 
-    let title = regex_replace_season(item_title);
-
-    let v = match type_field {
-        TypeField::Movie => {
-            let res = app.tmdb_api.search_movie(&title, year, None).await?;
-            info!("Movie {id} {title} found {}", res.total_results);
-            res.results
-                .iter()
-                .map(|m| Media {
-                    tmdb_id: m.id,
-                    tmdb_type: MediaType::Movie,
-                    title: m.title.to_owned(),
-                    sort: 100,
-                })
-                .collect::<Vec<_>>()
-        }
-        TypeField::Tv => {
-            let res = app.tmdb_api.search_tv(&title, year, None).await?;
-            info!("TV {id} {title} found {}", res.total_results);
-            res.results
-                .iter()
-                .map(|m| Media {
-                    tmdb_id: m.id,
-                    tmdb_type: MediaType::Tv,
-                    title: m.name.to_owned(),
-                    sort: 100,
-                })
-                .collect::<Vec<_>>()
-        }
-        TypeField::Unknown(s) => {
-            let res = app.tmdb_api.search_multi(&title, None).await?;
-            info!("Unknown {id} {s} found {}", res.total_results);
-            res.results
-                .iter()
-                .filter(|e| matches!(e, Tv(_) | Movie(_)))
-                .take(3)
-                .filter_map(|e| match e {
-                    Tv(t) => Some(Media {
-                        tmdb_id: t.id,
-                        tmdb_type: MediaType::Tv,
-                        title: t.name.clone(),
-                        sort: 100,
-                    }),
-                    Movie(m) => Some(Media {
+        let v = match type_field {
+            TypeField::Movie => {
+                let res = app.tmdb_api.search_movie(&title, year, None).await?;
+                info!("Movie {id} {title} found {}", res.total_results);
+                res.results
+                    .iter()
+                    .map(|m| Media {
                         tmdb_id: m.id,
                         tmdb_type: MediaType::Movie,
-                        title: m.title.clone(),
+                        title: m.title.to_owned(),
                         sort: 100,
-                    }),
-                    _ => None,
-                })
-                .collect::<Vec<_>>()
-        }
-    };
+                    })
+                    .collect::<Vec<_>>()
+            }
+            TypeField::Tv => {
+                let res = app.tmdb_api.search_tv(&title, year, None).await?;
+                info!("TV {id} {title} found {}", res.total_results);
+                res.results
+                    .iter()
+                    .map(|m| Media {
+                        tmdb_id: m.id,
+                        tmdb_type: MediaType::Tv,
+                        title: m.name.to_owned(),
+                        sort: 100,
+                    })
+                    .collect::<Vec<_>>()
+            }
+            TypeField::Unknown(s) => {
+                let res = app.tmdb_api.search_multi(&title, None).await?;
+                info!("Unknown {id} {s} found {}", res.total_results);
+                res.results
+                    .iter()
+                    .filter(|e| matches!(e, Tv(_) | Movie(_)))
+                    .filter_map(|e| match e {
+                        Tv(t) => Some(Media {
+                            tmdb_id: t.id,
+                            tmdb_type: MediaType::Tv,
+                            title: t.name.clone(),
+                            sort: 100,
+                        }),
+                        Movie(m) => Some(Media {
+                            tmdb_id: m.id,
+                            tmdb_type: MediaType::Movie,
+                            title: m.title.clone(),
+                            sort: 100,
+                        }),
+                        _ => None,
+                    })
+                    .collect::<Vec<_>>()
+            }
+        };
 
-    cache.set(id, &v).await?;
-    Ok(v)
+        debug!("{id} found {v:?}");
+        cache.set(id, &v).await?;
+        v
+    };
+    Ok(medias.into_iter().take(2).collect())
 }
 
 #[inline]
