@@ -16,8 +16,6 @@ use rand::rng;
 use rand::seq::IteratorRandom;
 use tracing::debug;
 
-add_task!("tmdb_scifi_media", task, should_download_posters: bool = "flag");
-
 macro_rules! load_all {
     ($api:expr, $fun:expr, $type:ty) => {{
         let mut page = 1;
@@ -41,6 +39,7 @@ macro_rules! load_all {
     }};
 }
 
+#[add_task("tmdb_scifi_media", rename(should_download_posters = "flag"))]
 pub async fn task(should_download_posters: bool) -> Result<()> {
     let api = TmdbApi::new()?;
 

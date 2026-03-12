@@ -22,23 +22,18 @@ fn build_cli() -> Command {
     for task in inventory::iter::<Task> {
         let mut sub = Command::new(task.name);
 
-        for &arg_name in task.args {
-            let mut arg_name = arg_name;
-            let mut action = ArgAction::Set;
-            let mut required = true;
+        for task_arg in task.args {
+            use crate::task::ArgKind;
 
-            if arg_name.starts_with('?') {
-                arg_name = &arg_name[1..];
-                action = ArgAction::SetTrue;
-                required = false;
-            } else if arg_name.starts_with('_') {
-                arg_name = &arg_name[1..];
-                required = false;
-            }
+            let (action, required) = match task_arg.kind {
+                ArgKind::Flag => (ArgAction::SetTrue, false),
+                ArgKind::Optional => (ArgAction::Set, false),
+                _ => (ArgAction::Set, true),
+            };
 
             sub = sub.arg(
-                Arg::new(arg_name)
-                    .long(arg_name)
+                Arg::new(task_arg.name)
+                    .long(task_arg.name)
                     .action(action)
                     .required(required),
             );

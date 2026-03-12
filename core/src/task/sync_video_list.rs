@@ -12,8 +12,7 @@ use futures_util::pin_mut;
 use tracing::debug;
 use tracing::info;
 
-add_task!("sync_video_list", task);
-
+#[add_task("sync_video_list")]
 pub async fn task() -> Result<()> {
     let dao = Dao::new().await?;
 

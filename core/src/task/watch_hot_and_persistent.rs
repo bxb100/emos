@@ -6,8 +6,7 @@ use emos_task_macro::add_task;
 use emos_tmdb_api::TmdbApi;
 use tracing::info;
 
-add_task!("watch_hot_and_persistent", run);
-
+#[add_task("watch_hot_and_persistent")]
 pub async fn run() -> anyhow::Result<()> {
     let filename = "watch_hot_and_persistent.json";
     let videos = watch_tmdb_hot().await?;

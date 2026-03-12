@@ -22,8 +22,6 @@ use tracing::debug;
 use tracing::error;
 use tracing::info;
 
-add_task!("watch_hot_video", run, watch_id: String = "watch_id", _douban_user_id: String = "douban_user_id");
-
 #[derive(Debug, Serialize, Deserialize, Copy, Clone)]
 struct CacheData {
     #[serde(rename = "type")]
@@ -46,6 +44,7 @@ struct App {
     cache: Arc<SimpleCache>,
 }
 
+#[add_task("watch_hot_video")]
 pub async fn run(watch_id: String, douban_user_id: Option<String>) -> anyhow::Result<()> {
     let mut data = get_douban_video(douban_user_id).await?;
 

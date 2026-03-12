@@ -11,13 +11,7 @@ use tokio::time::Duration;
 use tokio::time::sleep;
 use tracing::info;
 
-add_task!(
-    "watch_basic_genre",
-    task,
-    genre: String = "genre",
-    watch_id: String = "watch_id"
-);
-
+#[add_task("watch_basic_genre")]
 pub async fn task(genre: String, watch_id: String) -> Result<()> {
     let dao = Dao::new().await?;
     let s = stream! {
