@@ -39,7 +39,8 @@ jobs:
         working-directory: lib/cover_generator
         run: |
           uv run main.py 'scifi' '科幻' 'Sci-fi'
+          uv run main.py 'hot' '热门追更' 'Hot'
 
       - uses: bxb100/.github/.github/actions/commit@main
         with:
-          message: "chore: auto update"
+          message: "chore: auto generate covers"
