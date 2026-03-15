@@ -80,7 +80,7 @@ async fn download_posters(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()
         .map(|p| format!("{}{}", emos_tmdb_api::IMAGE_BASE_URL, p))
         .collect::<Vec<_>>();
 
-    batch_download_imgs(imgs, &project_root().join("data/covers/scifi")).await?;
+    batch_download_imgs(imgs, &project_root().join("data/covers/scifi"), true).await?;
     Ok(())
 }
 

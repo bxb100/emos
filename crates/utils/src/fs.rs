@@ -29,6 +29,7 @@ pub async fn download_file(url: impl IntoUrl, dest: PathBuf) -> anyhow::Result<(
 pub async fn batch_download_imgs(
     urls: Vec<impl AsRef<str>>,
     dest_dir: &std::path::Path,
+    force: bool,
 ) -> anyhow::Result<()> {
     let mut tasks = vec![];
     if !dest_dir.exists() {
@@ -37,7 +38,7 @@ pub async fn batch_download_imgs(
     let mut url_iter = urls.iter();
     for index in 1..=10 {
         let filename = dest_dir.join(format!("{}.jpg", index));
-        if !filename.exists() {
+        if force || !filename.exists() {
             let url = url_iter.next();
             match url {
                 None => break,

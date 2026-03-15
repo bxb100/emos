@@ -28,7 +28,7 @@ watch_hot_and_persistent:
     @cargo run watch_hot_and_persistent
 
 tmdb_scifi_media:
-    @cargo run tmdb_scifi_media
+    @cargo run tmdb_scifi_media --flag
 
 tmdb_download_cover:
     @echo '{{ style("warning") }}This receipt build for test{{ NORMAL }}'

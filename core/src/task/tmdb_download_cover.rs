@@ -41,7 +41,7 @@ pub async fn task(video: bool, tmdb_id: Vec<String>, namespace: String) -> Resul
         .map(|p| format!("{}{}", emos_tmdb_api::IMAGE_BASE_URL, p))
         .collect::<Vec<_>>();
 
-    batch_download_imgs(posters, &dest_dir).await?;
+    batch_download_imgs(posters, &dest_dir, true).await?;
 
     info!(
         "Downloaded poster for {} {:?} to {:?}",
