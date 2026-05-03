@@ -6,7 +6,6 @@ use anyhow::Result;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chrono::Local;
-use utils::ReqwestExt;
 use hmac::Hmac;
 use hmac::Mac;
 use once_cell::sync::Lazy;
@@ -17,6 +16,7 @@ use reqwest::Url;
 use serde::de::DeserializeOwned;
 use serde_json::Value;
 use sha1::Sha1;
+use utils::ReqwestExt;
 
 use crate::model::interests::Interests;
 

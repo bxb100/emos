@@ -1,5 +1,5 @@
 use jiff::Timestamp;
-use jiff::civil::{DateTime};
+use jiff::civil::DateTime;
 
 pub fn normalize_to_1_100(x: i64, min: i64, max: i64) -> i64 {
     let y = 1.0 + (x - min) as f64 / (max - min) as f64 * 99.0;
@@ -11,7 +11,9 @@ pub fn normalize_date<T: AsRef<str>>(date: Option<T>) -> i64 {
         let x = if let Ok(x) = date_str.as_ref().parse::<Timestamp>() {
             x.as_second()
         } else if let Ok(date_x) = date_str.as_ref().parse::<DateTime>() {
-            date_x.duration_since(DateTime::constant(1970, 1, 1, 0, 0, 0, 0)).as_secs()
+            date_x
+                .duration_since(DateTime::constant(1970, 1, 1, 0, 0, 0, 0))
+                .as_secs()
         } else {
             0
         };

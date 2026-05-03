@@ -2,10 +2,10 @@ use chrono::DateTime;
 use chrono::Local;
 use chrono_tz::Asia::Shanghai;
 use chrono_tz::Tz;
-use utils::fs::project_root;
-use utils::fs::write_json_to_file;
 use serde::Deserialize;
 use serde::Serialize;
+use utils::fs::project_root;
+use utils::fs::write_json_to_file;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct Dynamic {

@@ -3016,7 +3016,6 @@ name = "tmdb_api"
 version = "0.1.0"
 dependencies = [
  "anyhow",
- "dotenv_codegen",
  "reqwest",
  "serde",
  "serde_derive",

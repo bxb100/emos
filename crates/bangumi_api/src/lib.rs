@@ -2,13 +2,13 @@ use std::collections::HashMap;
 use std::env;
 
 use anyhow::Context;
-use utils::ReqwestExt;
 use reqwest::Client;
 use reqwest::header;
 use serde::Deserialize;
 use serde::Serialize;
 use serde_repr::Deserialize_repr;
 use serde_repr::Serialize_repr;
+use utils::ReqwestExt;
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 #[serde_with::skip_serializing_none]

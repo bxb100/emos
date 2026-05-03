@@ -4,17 +4,17 @@ use anyhow::Result;
 use emos_api::watch::dynamic::Media;
 use emos_api::watch::dynamic::MediaType;
 use emos_api::watch::dynamic::generate_dynamic_binding_file;
+use rand::rng;
+use rand::seq::IteratorRandom;
 use task_macro::add_task;
 use tmdb_api::TmdbApi;
 use tmdb_api::model::Movie;
 use tmdb_api::model::PagedResult;
 use tmdb_api::model::Tv;
+use tracing::debug;
 use utils::fs::batch_download_imgs;
 use utils::fs::project_root;
 use utils::math::normalize_to_1_100;
-use rand::rng;
-use rand::seq::IteratorRandom;
-use tracing::debug;
 
 macro_rules! load_all {
     ($api:expr, $fun:expr, $type:ty) => {{

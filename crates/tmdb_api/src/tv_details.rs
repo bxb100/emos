@@ -1,10 +1,11 @@
-use crate::TmdbApi;
+use anyhow::Context;
+use anyhow::Result;
 use serde_derive::Deserialize;
 use serde_derive::Serialize;
-
-use anyhow::{Context, Result};
 use serde_json::Value;
 use utils::ReqwestExt;
+
+use crate::TmdbApi;
 
 #[derive(Default, Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]

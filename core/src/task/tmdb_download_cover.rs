@@ -1,12 +1,12 @@
 use std::sync::Arc;
 
 use anyhow::Result;
+use futures_util::future::join_all;
 use task_macro::add_task;
 use tmdb_api::TmdbApi;
+use tracing::info;
 use utils::fs::batch_download_imgs;
 use utils::fs::project_root;
-use futures_util::future::join_all;
-use tracing::info;
 
 #[add_task("tmdb_download_cover", rename(tmdb_id = "id"))]
 pub async fn task(video: bool, tmdb_id: Vec<String>, namespace: String) -> Result<()> {

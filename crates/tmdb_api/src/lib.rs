@@ -5,13 +5,13 @@ use std::env;
 use std::str::FromStr;
 
 use anyhow::Context;
-use utils::ReqwestExt;
 use model::MediaItem;
 use model::Movie;
 use model::PagedResult;
 use model::Tv;
 use reqwest::Client;
 use reqwest::header;
+use utils::ReqwestExt;
 
 const BASE_URL: &str = "https://api.themoviedb.org/3";
 pub const IMAGE_BASE_URL: &str = "https://image.tmdb.org/t/p/original";

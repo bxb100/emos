@@ -1,24 +1,24 @@
 use std::ops::Deref;
 use std::sync::Arc;
 
-use emos_api::watch::dynamic::Media;
-use emos_api::watch::dynamic::MediaType;
-use emos_api::watch::dynamic::generate_dynamic_binding_file;
 use cache::Cache;
 use douban_api::DoubanApi;
 use douban_api::model::TypeField;
 use douban_api::model::top_list::SubjectCollectionItem;
 use douban_api::model::top_list::TopList;
+use emos_api::watch::dynamic::Media;
+use emos_api::watch::dynamic::MediaType;
+use emos_api::watch::dynamic::generate_dynamic_binding_file;
+use futures_util::StreamExt;
+use futures_util::stream;
+use regex::Regex;
 use task_macro::add_task;
 use tmdb_api::TmdbApi;
 use tmdb_api::model::MediaItem::Movie;
 use tmdb_api::model::MediaItem::Tv;
-use futures_util::StreamExt;
-use futures_util::stream;
-use regex::Regex;
 use tracing::debug;
 use tracing::info;
-use utils::math::{normalize_date};
+use utils::math::normalize_date;
 
 type SimpleCache = Cache<String, Vec<Media>>;
 
