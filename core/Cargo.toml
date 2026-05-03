@@ -1,5 +1,5 @@
 [package]
-name = "emos"
+name = "core"
 version = "0.1.0"
 edition.workspace = true
 homepage.workspace = true
@@ -7,14 +7,18 @@ repository.workspace = true
 readme.workspace = true
 license.workspace = true
 
+[[bin]]
+name = "emos"
+path = "src/main.rs"
+
 [dependencies]
 emos_dao.workspace = true
 emos_api.workspace = true
-emos_douban_api.workspace = true
-emos_tmdb_api.workspace = true
-emos_cache.workspace = true
-emos_utils.workspace = true
-emos_task_macro.workspace = true
+douban_api.workspace = true
+tmdb_api.workspace = true
+cache.workspace = true
+utils.workspace = true
+task_macro.workspace = true
 
 tokio.workspace = true
 futures-util.workspace = true
@@ -29,7 +33,7 @@ serde.workspace = true
 rand.workspace = true
 
 [dev-dependencies]
-emos_douban_api = { workspace = true, features = ["test-verbose"] }
+douban_api = { workspace = true, features = ["test-verbose"] }
 
 [lints]
 workspace = true

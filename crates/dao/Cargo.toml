@@ -9,7 +9,7 @@ license.workspace = true
 
 [dependencies]
 emos_api.workspace = true
-emos_utils.workspace = true
+utils.workspace = true
 
 sqlx.workspace = true
 anyhow.workspace = true

@@ -7,7 +7,7 @@ use std::time::Duration;
 
 use anyhow::Result;
 use delegate::delegate;
-use emos_utils::fs::project_root;
+use utils::fs::project_root;
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 

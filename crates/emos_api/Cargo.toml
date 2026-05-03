@@ -8,7 +8,7 @@ readme.workspace = true
 license.workspace = true
 
 [dependencies]
-emos_utils.workspace = true
+utils.workspace = true
 
 serde.workspace = true
 tokio.workspace = true
@@ -21,7 +21,7 @@ chrono.workspace = true
 chrono-tz.workspace = true
 
 [dev-dependencies]
-emos_utils = { workspace = true, features = ["test-verbose"] }
+utils = { workspace = true, features = ["test-verbose"] }
 tracing-subscriber.workspace = true
 serde_json.workspace = true
 

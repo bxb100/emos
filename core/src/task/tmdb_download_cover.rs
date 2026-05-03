@@ -1,10 +1,10 @@
 use std::sync::Arc;
 
 use anyhow::Result;
-use emos_task_macro::add_task;
-use emos_tmdb_api::TmdbApi;
-use emos_utils::fs::batch_download_imgs;
-use emos_utils::fs::project_root;
+use task_macro::add_task;
+use tmdb_api::TmdbApi;
+use utils::fs::batch_download_imgs;
+use utils::fs::project_root;
 use futures_util::future::join_all;
 use tracing::info;
 
@@ -38,7 +38,7 @@ pub async fn task(video: bool, tmdb_id: Vec<String>, namespace: String) -> Resul
         .into_iter()
         .filter_map(Result::ok)
         .flatten()
-        .map(|p| format!("{}{}", emos_tmdb_api::IMAGE_BASE_URL, p))
+        .map(|p| format!("{}{}", tmdb_api::IMAGE_BASE_URL, p))
         .collect::<Vec<_>>();
 
     batch_download_imgs(posters, &dest_dir, true).await?;

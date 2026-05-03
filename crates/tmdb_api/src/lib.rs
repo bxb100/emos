@@ -4,7 +4,7 @@ use std::env;
 use std::str::FromStr;
 
 use anyhow::Context;
-use emos_utils::ReqwestExt;
+use utils::ReqwestExt;
 use model::MediaItem;
 use model::Movie;
 use model::PagedResult;

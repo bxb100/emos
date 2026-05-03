@@ -1,6 +1,6 @@
 use anyhow::Result;
 use emos_api::video;
-use emos_utils::SqlInClause;
+use utils::SqlInClause;
 use serde::Deserialize;
 use sqlx::QueryBuilder;
 use sqlx::Sqlite;

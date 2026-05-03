@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::env;
 
 use anyhow::Context;
-use emos_utils::ReqwestExt;
+use utils::ReqwestExt;
 use reqwest::Client;
 use reqwest::header;
 use serde::Deserialize;

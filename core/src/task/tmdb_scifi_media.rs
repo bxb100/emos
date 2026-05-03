@@ -4,14 +4,14 @@ use anyhow::Result;
 use emos_api::watch::dynamic::Media;
 use emos_api::watch::dynamic::MediaType;
 use emos_api::watch::dynamic::generate_dynamic_binding_file;
-use emos_task_macro::add_task;
-use emos_tmdb_api::TmdbApi;
-use emos_tmdb_api::model::Movie;
-use emos_tmdb_api::model::PagedResult;
-use emos_tmdb_api::model::Tv;
-use emos_utils::fs::batch_download_imgs;
-use emos_utils::fs::project_root;
-use emos_utils::math::normalize_to_1_100;
+use task_macro::add_task;
+use tmdb_api::TmdbApi;
+use tmdb_api::model::Movie;
+use tmdb_api::model::PagedResult;
+use tmdb_api::model::Tv;
+use utils::fs::batch_download_imgs;
+use utils::fs::project_root;
+use utils::math::normalize_to_1_100;
 use rand::rng;
 use rand::seq::IteratorRandom;
 use tracing::debug;
@@ -77,7 +77,7 @@ async fn download_posters(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()
     let imgs = posters
         .iter()
         // poster_path like `/gajva2L0rPYkEWjzgFlBXCAVBE5.jpg`
-        .map(|p| format!("{}{}", emos_tmdb_api::IMAGE_BASE_URL, p))
+        .map(|p| format!("{}{}", tmdb_api::IMAGE_BASE_URL, p))
         .collect::<Vec<_>>();
 
     batch_download_imgs(imgs, &project_root().join("data/covers/scifi"), true).await?;

@@ -6,7 +6,7 @@ use anyhow::Result;
 use base64::Engine;
 use base64::engine::general_purpose::STANDARD;
 use chrono::Local;
-use emos_utils::ReqwestExt;
+use utils::ReqwestExt;
 use hmac::Hmac;
 use hmac::Mac;
 use once_cell::sync::Lazy;

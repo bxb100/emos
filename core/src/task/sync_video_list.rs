@@ -5,7 +5,7 @@ use async_stream::stream;
 use emos_api::video;
 use emos_api::video::list::QueryParams;
 use emos_dao::Dao;
-use emos_task_macro::add_task;
+use task_macro::add_task;
 use futures_util::Stream;
 use futures_util::StreamExt;
 use futures_util::pin_mut;
