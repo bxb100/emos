@@ -21,6 +21,7 @@ use tracing::info;
 use utils::math::normalize_date;
 
 type SimpleCache = Cache<String, Vec<Media>>;
+const DOUBAN_VIDEO_CACHE_KEY_PREFIX: &str = "douban_video_last_air_date_v1";
 
 struct App {
     tmdb_api: Arc<TmdbApi>,
@@ -201,7 +202,7 @@ async fn filter_douban_by_cache(
     item_title: &str,
     year: Option<impl AsRef<str>>,
 ) -> anyhow::Result<Vec<Media>> {
-    let id = format!("douban_video_{}", item_id);
+    let id = format!("{DOUBAN_VIDEO_CACHE_KEY_PREFIX}_{item_id}");
     let cache = app.cache.deref();
 
     // empty data fallback to re-fetch
@@ -230,38 +231,42 @@ async fn filter_douban_by_cache(
             TypeField::Tv => {
                 let res = app.tmdb_api.search_tv(&title, year, None).await?;
                 info!("TV {id} {title} found {}", res.total_results);
-                res.results
-                    .iter()
-                    .map(|m| Media {
+                let mut medias = Vec::with_capacity(res.results.len());
+                for m in &res.results {
+                    medias.push(Media {
                         tmdb_id: m.id,
                         tmdb_type: MediaType::Tv,
                         title: m.name.to_owned(),
-                        sort: normalize_date(m.first_air_date.as_ref()),
-                    })
-                    .collect::<Vec<_>>()
+                        sort: tv_last_air_date_sort(&app, m.id, m.first_air_date.as_ref()).await,
+                    });
+                }
+                medias
             }
             TypeField::Unknown(s) => {
                 let res = app.tmdb_api.search_multi(&title, None).await?;
                 info!("Unknown {id} {s} found {}", res.total_results);
-                res.results
-                    .iter()
-                    .filter(|e| matches!(e, Tv(_) | Movie(_)))
-                    .filter_map(|e| match e {
-                        Tv(t) => Some(Media {
-                            tmdb_id: t.id,
-                            tmdb_type: MediaType::Tv,
-                            title: t.name.clone(),
-                            sort: normalize_date(t.first_air_date.as_ref()),
-                        }),
-                        Movie(m) => Some(Media {
+                let mut medias = Vec::with_capacity(res.results.len());
+                for item in &res.results {
+                    match item {
+                        Tv(t) => {
+                            medias.push(Media {
+                                tmdb_id: t.id,
+                                tmdb_type: MediaType::Tv,
+                                title: t.name.clone(),
+                                sort: tv_last_air_date_sort(&app, t.id, t.first_air_date.as_ref())
+                                    .await,
+                            });
+                        }
+                        Movie(m) => medias.push(Media {
                             tmdb_id: m.id,
                             tmdb_type: MediaType::Movie,
                             title: m.title.clone(),
                             sort: normalize_date(m.release_date.as_ref()),
                         }),
-                        _ => None,
-                    })
-                    .collect::<Vec<_>>()
+                        _ => {}
+                    }
+                }
+                medias
             }
         };
 
@@ -270,6 +275,17 @@ async fn filter_douban_by_cache(
         v
     };
     Ok(medias.into_iter().take(2).collect())
+}
+
+async fn tv_last_air_date_sort(
+    app: &App,
+    tmdb_id: u64,
+    fallback_first_air_date: Option<&String>,
+) -> i64 {
+    match app.tmdb_api.tv_details(tmdb_id).await {
+        Ok(details) => normalize_date(Some(details.last_air_date)),
+        Err(_) => normalize_date(fallback_first_air_date),
+    }
 }
 
 #[inline]

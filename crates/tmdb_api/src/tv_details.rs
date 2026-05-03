@@ -185,7 +185,7 @@ pub struct SpokenLanguage {
 }
 
 impl TmdbApi {
-    pub async fn tv_details(&self, series_id: i32) -> Result<TvDetails> {
+    pub async fn tv_details(&self, series_id: u64) -> Result<TvDetails> {
         let url = format!("{}/tv/{series_id}", self.base_url);
 
         let result = self
