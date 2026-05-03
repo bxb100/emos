@@ -94,13 +94,13 @@ async fn to_json(tv: Arc<Vec<Tv>>, movie: Arc<Vec<Movie>>) -> Result<()> {
             tmdb_id: s.id,
             tmdb_type: MediaType::Tv,
             title: s.name.to_string(),
-            sort: normalize_to_1_100(i, 0, tv.len()),
+            sort: normalize_to_1_100(i as i64, 0, tv.len() as i64),
         })
         .chain(movie.iter().enumerate().map(|(i, s)| Media {
             tmdb_id: s.id,
             tmdb_type: MediaType::Movie,
             title: s.title.to_string(),
-            sort: normalize_to_1_100(i, 0, movie.len()),
+            sort: normalize_to_1_100(i as i64, 0, movie.len() as i64),
         }))
         .collect::<Vec<_>>();
 

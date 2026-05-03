@@ -24,9 +24,6 @@ sqlx-prepare:
 watch_hot_video:
     @cargo run watch_hot_video --douban_user_id $DOUBAN_USER_ID
 
-watch_hot_and_persistent:
-    @cargo run watch_hot_and_persistent
-
 tmdb_scifi_media:
     @cargo run tmdb_scifi_media --flag
 

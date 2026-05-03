@@ -44,3 +44,4 @@ data/covers/cs
 data/covers/cs.png
 # local cache
 !data/cache/*
+/mise.toml

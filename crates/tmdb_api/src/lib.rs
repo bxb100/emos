@@ -1,4 +1,5 @@
 pub mod model;
+mod tv_details;
 
 use std::env;
 use std::str::FromStr;

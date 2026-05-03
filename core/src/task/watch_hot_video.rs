@@ -18,6 +18,7 @@ use futures_util::stream;
 use regex::Regex;
 use tracing::debug;
 use tracing::info;
+use utils::math::{normalize_date};
 
 type SimpleCache = Cache<String, Vec<Media>>;
 
@@ -222,7 +223,7 @@ async fn filter_douban_by_cache(
                         tmdb_id: m.id,
                         tmdb_type: MediaType::Movie,
                         title: m.title.to_owned(),
-                        sort: 100,
+                        sort: normalize_date(m.release_date.as_ref()),
                     })
                     .collect::<Vec<_>>()
             }
@@ -235,7 +236,7 @@ async fn filter_douban_by_cache(
                         tmdb_id: m.id,
                         tmdb_type: MediaType::Tv,
                         title: m.name.to_owned(),
-                        sort: 100,
+                        sort: normalize_date(m.first_air_date.as_ref()),
                     })
                     .collect::<Vec<_>>()
             }
@@ -250,13 +251,13 @@ async fn filter_douban_by_cache(
                             tmdb_id: t.id,
                             tmdb_type: MediaType::Tv,
                             title: t.name.clone(),
-                            sort: 100,
+                            sort: normalize_date(t.first_air_date.as_ref()),
                         }),
                         Movie(m) => Some(Media {
                             tmdb_id: m.id,
                             tmdb_type: MediaType::Movie,
                             title: m.title.clone(),
-                            sort: 100,
+                            sort: normalize_date(m.release_date.as_ref()),
                         }),
                         _ => None,
                     })

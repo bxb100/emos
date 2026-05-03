@@ -21,7 +21,7 @@ pub struct Media {
     pub tmdb_id: u64,
     pub tmdb_type: MediaType,
     pub title: String,
-    pub sort: u32,
+    pub sort: i64,
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Eq, PartialEq)]
