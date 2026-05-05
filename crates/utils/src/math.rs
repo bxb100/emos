@@ -1,12 +1,13 @@
 use jiff::Timestamp;
 use jiff::civil::DateTime;
 
-///! 1-100
+/// 1-100
 pub fn normalize_to_1_100(x: i64, min: i64, max: i64) -> i64 {
     let y = 1.0 + (x - min) as f64 / (max - min) as f64 * 99.0;
-    y.round() as i64
+    (y.round() as i64).min(max).max(min)
 }
 
+/// 1-100
 pub fn normalize_date<T: AsRef<str>>(date: Option<T>) -> i64 {
     if let Some(date_str) = date {
         let x = if let Ok(x) = date_str.as_ref().parse::<Timestamp>() {
@@ -19,7 +20,7 @@ pub fn normalize_date<T: AsRef<str>>(date: Option<T>) -> i64 {
             1
         };
         let max = Timestamp::now().as_second();
-        100 - normalize_to_1_100(x, 0, max)
+        (100 - normalize_to_1_100(x, 0, max)).min(100).max(1)
     } else {
         1
     }
@@ -27,8 +28,8 @@ pub fn normalize_date<T: AsRef<str>>(date: Option<T>) -> i64 {
 
 #[test]
 fn test_normalize_date() {
-    normalize_date(Some("2026-01-01T00:00:00Z"));
-    normalize_date(Some("1999-10-15"));
+    assert!(normalize_date(Some("2026-06-01T00:00:00Z")) <= 100);
+    assert!(normalize_date(Some("1888-10-15")) > 0);
 }
 
 #[test]

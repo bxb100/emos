@@ -1,6 +1,14 @@
 name: run_task.yml
 on:
   workflow_dispatch:
+    inputs:
+      task_name:
+        description: "Optional task name to run. Leave empty to run all tasks."
+        required: false
+        type: choice
+        options:
+          - tmdb_scifi_media
+          - watch_hot_video
   schedule:
     - cron: "0 20 * * *"
 
@@ -24,6 +32,7 @@ jobs:
 
       - name: Run tmdb_scifi_media
         uses: ./.github/actions/task
+        if: ${{ inputs.task_name == 'tmdb_scifi_media' || inputs.task_name == '' }}
         with:
           binary_name: "emos"
           task_args: "tmdb_scifi_media"
@@ -31,6 +40,7 @@ jobs:
 
       - name: Run watch_hot_video
         uses: ./.github/actions/task
+        if: ${{ inputs.task_name == 'watch_hot_video' || inputs.task_name == '' }}
         with:
           binary_name: "emos"
           task_args: "watch_hot_video --douban_user_id ${{ secrets.DOUBAN_USER_ID }}"
