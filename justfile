@@ -24,6 +24,12 @@ sqlx-prepare:
 watch_hot_video:
     @cargo run watch_hot_video --douban_user_id $DOUBAN_USER_ID
 
+trakt_auth:
+    @cargo run trakt_auth
+
+trakt_trending:
+    @cargo run trakt_trending --download_cover
+
 tmdb_scifi_media:
     @cargo run tmdb_scifi_media --flag
 

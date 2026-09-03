@@ -16,6 +16,7 @@ emos_api = { path = "crates/emos_api" }
 douban_api = { path = "crates/douban_api" }
 bangumi_api = { path = "crates/bangumi_api" }
 tmdb_api = { path = "crates/tmdb_api" }
+trakt_api = { path = "crates/trakt_api" }
 emos_dao = { path = "crates/dao" }
 utils = { path = "crates/utils" }
 cache = { path = "crates/cache" }

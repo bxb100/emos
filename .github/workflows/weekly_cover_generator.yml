@@ -30,6 +30,13 @@ jobs:
           task_args: "tmdb_scifi_media --flag"
           token: ${{ github.token }}
 
+      - name: Download Trakt trending covers
+        uses: ./.github/actions/task
+        with:
+          binary_name: "emos"
+          task_args: "trakt_trending --download_cover"
+          token: ${{ github.token }}
+
       - name: Set up Python
         uses: astral-sh/setup-uv@v7
         with:
@@ -40,6 +47,7 @@ jobs:
         run: |
           uv run main.py 'scifi' '科幻' 'Sci-fi'
           uv run main.py 'hot' '热门追更' 'Hot'
+          uv run main.py 'trakt' '热门趋势' 'Trending'
 
       - uses: bxb100/.github/.github/actions/commit@main
         with:

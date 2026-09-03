@@ -3,11 +3,14 @@ on:
   workflow_dispatch:
     inputs:
       task_name:
-        description: "Optional task name to run. Leave empty to run all tasks."
+        description: "Task name to run. Select all to run every non-interactive task."
         required: false
         type: choice
         options:
+          - all
           - tmdb_scifi_media
+          - trakt_auth
+          - trakt_trending
           - watch_hot_video
   schedule:
     - cron: "0 20 * * *"
@@ -32,7 +35,7 @@ jobs:
 
       - name: Run tmdb_scifi_media
         uses: ./.github/actions/task
-        if: ${{ inputs.task_name == 'tmdb_scifi_media' || inputs.task_name == '' }}
+        if: ${{ inputs.task_name == 'tmdb_scifi_media' || inputs.task_name == 'all' || inputs.task_name == '' }}
         with:
           binary_name: "emos"
           task_args: "tmdb_scifi_media"
@@ -40,14 +43,31 @@ jobs:
 
       - name: Run watch_hot_video
         uses: ./.github/actions/task
-        if: ${{ inputs.task_name == 'watch_hot_video' || inputs.task_name == '' }}
+        if: ${{ inputs.task_name == 'watch_hot_video' || inputs.task_name == 'all' || inputs.task_name == '' }}
         with:
           binary_name: "emos"
           task_args: "watch_hot_video --douban_user_id ${{ secrets.DOUBAN_USER_ID }}"
           token: ${{ github.token }}
 
+      - name: Run trakt_trending
+        uses: ./.github/actions/task
+        if: ${{ inputs.task_name == 'trakt_trending' || inputs.task_name == 'all' || inputs.task_name == '' }}
+        with:
+          binary_name: "emos"
+          task_args: "trakt_trending"
+          token: ${{ github.token }}
+
+      - name: Authorize Trakt
+        uses: ./.github/actions/task
+        if: ${{ inputs.task_name == 'trakt_auth' }}
+        with:
+          binary_name: "emos"
+          task_args: "trakt_auth"
+          token: ${{ github.token }}
+
       - name: Upload json
         uses: ./.github/actions/upload
+        if: ${{ inputs.task_name != 'trakt_auth' }}
         with:
           CLOUDFLARE_R2_ACCOUNTID: ${{ secrets.CLOUDFLARE_R2_ACCOUNTID }}
           CLOUDFLARE_R2_KEY: ${{ secrets.CLOUDFLARE_R2_KEY }}

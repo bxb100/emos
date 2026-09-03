@@ -16,6 +16,7 @@ emos_dao.workspace = true
 emos_api.workspace = true
 douban_api.workspace = true
 tmdb_api.workspace = true
+trakt_api.workspace = true
 cache.workspace = true
 utils.workspace = true
 task_macro.workspace = true
@@ -29,7 +30,6 @@ anyhow.workspace = true
 clap.workspace = true
 inventory = "0.3"
 regex = "1"
-serde.workspace = true
 rand.workspace = true
 
 [dev-dependencies]

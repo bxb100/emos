@@ -1,0 +1,7 @@
+[extend]
+useDefault = true
+
+# Keep the singular table syntax compatible with the repository's pinned gitleaks v8.24 hook.
+[allowlist]
+description = "Repository-backed Trakt OAuth cache explicitly requested by the project"
+paths = ['''(^|/)data/cache/trakt_auth\.mpbr$''']

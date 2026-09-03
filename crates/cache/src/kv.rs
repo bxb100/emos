@@ -356,17 +356,13 @@ impl<
             let guard = data;
 
             tokio::task::spawn_blocking(move || {
-                Self::save_blocking(&guard, &path)?;
-                // We need to set writes=0 and data=None on the guard if save successful.
-                // But wait, save_blocking writes to disk.
-                // Original logic cleared memory if save successful.
-                // save_blocking returns bool (success).
-
-                // However, guard is moved here.
-                // We can mutate it here.
-                // But guard type is OwnedRwLockWriteGuard.
-                // We need mut access.
                 let mut g = guard;
+                if !Self::save_blocking(&g, &path)? {
+                    return Err(Error::Other(format!(
+                        "Cache file changed while saving {}",
+                        path.display()
+                    )));
+                }
                 g.writes = 0;
                 g.data = None;
                 Ok::<(), Error>(())
@@ -510,8 +506,10 @@ impl<
 
 #[tokio::test]
 async fn kvtest() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("cache.bin");
     let tmp: TempCache<(String, String)> =
-        TempCache::new("/tmp/rmptest.bin", Duration::from_secs(1234)).unwrap();
+        TempCache::new(&path, Duration::from_secs(1234)).unwrap();
     tmp.set("hello", ("world".to_string(), "etc".to_string()))
         .await
         .unwrap();
@@ -520,7 +518,34 @@ async fn kvtest() {
     assert_eq!(res, ("world".to_string(), "etc".to_string()));
 
     let tmp2: TempCache<(String, String)> =
-        TempCache::new("/tmp/rmptest.bin", Duration::from_secs(1234)).unwrap();
+        TempCache::new(&path, Duration::from_secs(1234)).unwrap();
     let res2 = tmp2.get("hello").await.unwrap().unwrap();
     assert_eq!(res2, ("world".to_string(), "etc".to_string()));
+}
+
+#[tokio::test]
+async fn explicit_save_reports_an_external_write_race() {
+    let directory = tempfile::tempdir().unwrap();
+    let path = directory.path().join("cache.bin");
+    let first = TempCache::<String>::new(&path, Duration::ZERO).unwrap();
+    let second = TempCache::<String>::new(&path, Duration::ZERO).unwrap();
+
+    first.set("token", "first".to_string()).await.unwrap();
+    second.set("token", "second".to_string()).await.unwrap();
+    first.save().await.unwrap();
+
+    let error = second.save().await.unwrap_err();
+    assert!(
+        error
+            .to_string()
+            .contains("Cache file changed while saving")
+    );
+
+    // Avoid retrying the deliberately stale write in Drop.
+    second.inner.write().await.writes = 0;
+    let reopened = TempCache::<String>::new(&path, Duration::ZERO).unwrap();
+    assert_eq!(
+        reopened.get("token").await.unwrap().as_deref(),
+        Some("first")
+    );
 }

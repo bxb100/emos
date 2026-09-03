@@ -3,6 +3,8 @@ use std::pin::Pin;
 pub(crate) mod sync_video_list;
 mod tmdb_download_cover;
 mod tmdb_scifi_media;
+mod trakt_auth;
+mod trakt_trending;
 pub(crate) mod watch_basic_genre;
 pub(crate) mod watch_hot_video;
 

@@ -451,12 +451,12 @@ dependencies = [
  "inventory",
  "rand 0.10.0",
  "regex",
- "serde",
  "task_macro",
  "tmdb_api",
  "tokio",
  "tracing",
  "tracing-subscriber",
+ "trakt_api",
  "utils",
 ]
 
@@ -3191,6 +3191,20 @@ dependencies = [
  "tracing",
  "tracing-core",
  "tracing-log",
+]
+
+[[package]]
+name = "trakt_api"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "cache",
+ "reqwest",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
+ "utils",
 ]
 
 [[package]]
