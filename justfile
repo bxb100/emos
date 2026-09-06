@@ -39,7 +39,7 @@ tmdb_download_cover:
     @cargo run tmdb_download_cover --id 1408 --id 59941 --id 65733 --id 1399 --id 2734 --namespace cs
 
 gen namespace zh en:
-    @just --justfile ./lib/cover_generator/Justfile gen {{namespace}} {{zh}} {{en}}
+    @just --justfile ./lib/cover_generator/Justfile gen {{quote(namespace)}} {{quote(zh)}} {{quote(en)}}
 
 dist:
     @cargo x dist --package emos --strip true

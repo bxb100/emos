@@ -1,5 +1,5 @@
 [package]
-name = "x"
+name = "xtask"
 publish = false
 edition.workspace = true
 

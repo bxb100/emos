@@ -3,8 +3,6 @@ import io
 import logging
 import colorsys
 import random
-import base64
-from io import BytesIO
 from collections import Counter
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
@@ -123,14 +121,9 @@ def create_shadow_mask(size, split_top=0.5, split_bottom=0.33, feather_size=40):
     draw.polygon([(top_x - 5, 0), (top_x - 5 + shadow_width, 0), (bottom_x - 5 + shadow_width, height), (bottom_x - 5, height)], fill=255)
     return mask.filter(ImageFilter.GaussianBlur(radius=feather_size//3))
 
-# def image_to_base64(image):
-#     buffer = BytesIO()
-#     image.save(buffer, format="PNG", optimize=True)
-#     return base64.b64encode(buffer.getvalue()).decode('utf-8')
 def image_to_bytes(image):
     buffer = io.BytesIO()
-    # format 可以根据需要改为 "JPEG", "PNG" 等
-    image.save(buffer, format="PNG")
+    image.save(buffer, format="PNG", optimize=True)
     return buffer.getvalue()
 
 # ========== 主函数 ==========

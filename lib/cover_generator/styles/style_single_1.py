@@ -3,8 +3,6 @@ import io
 import logging
 import colorsys
 import random
-import base64
-from io import BytesIO
 from collections import Counter
 import numpy as np
 from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
@@ -121,14 +119,9 @@ def add_shadow_and_rotate(canvas, img, angle, offset=(10, 10), radius=10, opacit
     canvas.paste(rotated_img, (img_x, img_y), rotated_img)
     return canvas
 
-# def image_to_base64(image):
-#     buffer = BytesIO()
-#     image.save(buffer, format="PNG", optimize=True)
-#     return base64.b64encode(buffer.getvalue()).decode('utf-8')
 def image_to_bytes(image):
     buffer = io.BytesIO()
-    # format 可以根据需要改为 "JPEG", "PNG" 等
-    image.save(buffer, format="PNG")
+    image.save(buffer, format="PNG", optimize=True)
     return buffer.getvalue()
 
 # ========== 主函数 ==========

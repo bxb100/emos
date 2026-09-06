@@ -7,22 +7,22 @@ use clap::Parser;
 
 use crate::DynError;
 use crate::find_command;
-use crate::project_root;
+use crate::workspace_root;
 
 #[derive(Parser)]
-pub(crate) struct CommandDist {
-    #[arg(long, help = "Binary package name to dist")]
-    package: String,
+pub(crate) struct Dist {
+    #[arg(long = "package", help = "Binary name to distribute")]
+    binary: String,
     #[arg(long, help = "Strip the binary to reduce size")]
     strip: Option<bool>,
 }
 
 #[inline]
 fn dist_dir() -> PathBuf {
-    project_root().join("target/dist")
+    workspace_root().join("target/dist")
 }
 
-impl CommandDist {
+impl Dist {
     pub(crate) fn run(&self) -> Result<(), DynError> {
         let _ = fs::remove_dir_all(dist_dir());
         fs::create_dir_all(dist_dir())?;
@@ -34,7 +34,7 @@ impl CommandDist {
     fn dist_binary(&self) -> Result<(), DynError> {
         let cargo = env::var("CARGO").unwrap_or_else(|_| "cargo".to_string());
         let status = Command::new(cargo)
-            .current_dir(project_root())
+            .current_dir(workspace_root())
             .args(["build", "--release"])
             .status()?;
 
@@ -42,9 +42,9 @@ impl CommandDist {
             Err("cargo build failed")?;
         }
 
-        let dst = project_root().join(format!("target/release/{}", self.package));
+        let dst = workspace_root().join(format!("target/release/{}", self.binary));
 
-        fs::copy(&dst, dist_dir().join(&self.package))?;
+        fs::copy(&dst, dist_dir().join(&self.binary))?;
 
         if let Some(strip) = self.strip
             && strip

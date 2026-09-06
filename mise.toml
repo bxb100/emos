@@ -1,3 +1,4 @@
 [env]
 SQLX_OFFLINE = true
+# When using 1password env mount, remember not to disable the mise cache, use `mise cache clear` instead
 _.file = ".env"

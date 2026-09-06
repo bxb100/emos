@@ -1,0 +1,19 @@
+[package]
+name = "emos-http"
+version = "0.1.0"
+edition.workspace = true
+repository.workspace = true
+readme.workspace = true
+license.workspace = true
+publish = false
+
+[dependencies]
+anyhow.workspace = true
+reqwest.workspace = true
+tracing.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_path_to_error.workspace = true
+
+[lints]
+workspace = true

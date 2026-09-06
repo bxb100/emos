@@ -4,7 +4,6 @@ import logging
 import os
 import random
 import math
-import base64
 import io
 import colorsys
 from pathlib import Path
@@ -243,8 +242,7 @@ def create_blur_background(image_path, template_width, template_height, backgrou
 
 def image_to_bytes(image):
     buffer = io.BytesIO()
-    # format 可以根据需要改为 "JPEG", "PNG" 等
-    image.save(buffer, format="PNG")
+    image.save(buffer, format="PNG", optimize=True)
     return buffer.getvalue()
 
 # ========== 主函数 ==========
@@ -304,7 +302,7 @@ def create_style_multi_1(library_dir, title, font_path, font_size=(1,1), is_blur
                     poster = ImageOps.fit(Image.open(poster_path), (cell_width, cell_height), method=Image.LANCZOS)
                     if corner_radius > 0:
                         mask = Image.new("L", (cell_width, cell_height), 0)
-                        ImageDraw.Draw(mask).rounded_rectangle([(1, 1), (cell_width - 2, cell_height - 2)], radius=corner_radius, fill=255)
+                        ImageDraw.Draw(mask).rounded_rectangle([(0, 0), (cell_width, cell_height)], radius=corner_radius, fill=255)
                         poster_with_corners = Image.new("RGBA", poster.size, (0, 0, 0, 0))
                         poster_with_corners.paste(poster, (0, 0), mask)
                         poster = poster_with_corners

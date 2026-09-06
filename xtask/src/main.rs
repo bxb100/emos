@@ -2,72 +2,72 @@ mod dist;
 
 use std::path::Path;
 use std::path::PathBuf;
-use std::process::Command as StdCommand;
+use std::process::Command as ProcessCommand;
 
 use clap::Parser;
 use clap::Subcommand;
 
-use crate::dist::CommandDist;
+use crate::dist::Dist;
 
 type DynError = Box<dyn std::error::Error>;
 
 #[derive(Parser)]
-struct Command {
-    #[clap(subcommand)]
-    sub: SubCommand,
+struct Cli {
+    #[command(subcommand)]
+    command: Command,
 }
 
-impl Command {
+impl Cli {
     fn run(self) -> Result<(), DynError> {
-        match self.sub {
-            SubCommand::Lint(cmd) => cmd.run(),
-            SubCommand::Test(cmd) => cmd.run(),
-            SubCommand::Dist(cmd) => cmd.run(),
+        match self.command {
+            Command::Lint(cmd) => cmd.run(),
+            Command::Test(cmd) => cmd.run(),
+            Command::Dist(cmd) => cmd.run(),
         }
     }
 }
 
 #[derive(Subcommand)]
-enum SubCommand {
-    #[clap(about = "Run format and clippy checks.")]
-    Lint(CommandLint),
-    #[clap(about = "Run unit tests.")]
-    Test(CommandTest),
-    #[clap(about = "Generate distributable binary package.")]
-    Dist(CommandDist),
+enum Command {
+    #[command(about = "Run format and clippy checks.")]
+    Lint(Lint),
+    #[command(about = "Run unit tests.")]
+    Test(Test),
+    #[command(about = "Generate distributable binary package.")]
+    Dist(Dist),
 }
 
 #[derive(Parser)]
-struct CommandTest {
+struct Test {
     #[arg(long, help = "Run tests serially and do not capture output.")]
     no_capture: bool,
 }
 
-impl CommandTest {
+impl Test {
     fn run(self) -> Result<(), DynError> {
-        run_command(make_test_cmd(self.no_capture, &[])?)
+        run_command(test_command(self.no_capture, &[])?)
     }
 }
 
 #[derive(Parser)]
-#[clap(name = "lint")]
-struct CommandLint {
+#[command(name = "lint")]
+struct Lint {
     #[arg(long, help = "Automatically apply lint suggestions.")]
     fix: bool,
 }
 
-impl CommandLint {
+impl Lint {
     fn run(self) -> Result<(), DynError> {
-        run_command(make_clippy_cmd(self.fix)?)?;
-        run_command(make_format_cmd(self.fix)?)?;
-        run_command(make_taplo_cmd(self.fix)?)?;
-        run_command(make_typos_cmd()?)?;
+        run_command(clippy_command(self.fix)?)?;
+        run_command(format_command(self.fix)?)?;
+        run_command(taplo_command(self.fix)?)?;
+        run_command(typos_command()?)?;
 
         Ok(())
     }
 }
 
-fn project_root() -> PathBuf {
+fn workspace_root() -> PathBuf {
     Path::new(&env!("CARGO_MANIFEST_DIR"))
         .ancestors()
         .nth(1)
@@ -75,11 +75,11 @@ fn project_root() -> PathBuf {
         .to_path_buf()
 }
 
-fn find_command(cmd: &str) -> Result<StdCommand, DynError> {
+fn find_command(cmd: &str) -> Result<ProcessCommand, DynError> {
     let exe = which::which(cmd)?;
 
-    let mut command = StdCommand::new(exe);
-    command.current_dir(project_root());
+    let mut command = ProcessCommand::new(exe);
+    command.current_dir(workspace_root());
     Ok(command)
 }
 
@@ -92,7 +92,7 @@ fn ensure_installed(bin: &str, crate_name: &str) -> Result<(), DynError> {
     Ok(())
 }
 
-fn run_command(mut cmd: StdCommand) -> Result<(), DynError> {
+fn run_command(mut cmd: ProcessCommand) -> Result<(), DynError> {
     println!("{cmd:?}");
     let status = cmd.status()?;
     if status.success() {
@@ -102,7 +102,7 @@ fn run_command(mut cmd: StdCommand) -> Result<(), DynError> {
     }
 }
 
-fn make_test_cmd(no_capture: bool, features: &[&str]) -> Result<StdCommand, DynError> {
+fn test_command(no_capture: bool, features: &[&str]) -> Result<ProcessCommand, DynError> {
     let mut cmd = find_command("cargo")?;
     cmd.args(["test", "--workspace", "--no-default-features"]);
     if !features.is_empty() {
@@ -114,7 +114,7 @@ fn make_test_cmd(no_capture: bool, features: &[&str]) -> Result<StdCommand, DynE
     Ok(cmd)
 }
 
-fn make_format_cmd(fix: bool) -> Result<StdCommand, DynError> {
+fn format_command(fix: bool) -> Result<ProcessCommand, DynError> {
     let mut cmd = find_command("cargo")?;
     cmd.args(["+nightly", "fmt", "--all"]);
     if !fix {
@@ -123,7 +123,7 @@ fn make_format_cmd(fix: bool) -> Result<StdCommand, DynError> {
     Ok(cmd)
 }
 
-fn make_clippy_cmd(fix: bool) -> Result<StdCommand, DynError> {
+fn clippy_command(fix: bool) -> Result<ProcessCommand, DynError> {
     let mut cmd = find_command("cargo")?;
     cmd.args([
         "+nightly",
@@ -141,12 +141,12 @@ fn make_clippy_cmd(fix: bool) -> Result<StdCommand, DynError> {
     Ok(cmd)
 }
 
-fn make_typos_cmd() -> Result<StdCommand, DynError> {
+fn typos_command() -> Result<ProcessCommand, DynError> {
     ensure_installed("typos", "typos-cli")?;
     find_command("typos")
 }
 
-fn make_taplo_cmd(fix: bool) -> Result<StdCommand, DynError> {
+fn taplo_command(fix: bool) -> Result<ProcessCommand, DynError> {
     ensure_installed("taplo", "taplo-cli")?;
     let mut cmd = find_command("taplo")?;
     if fix {
@@ -158,7 +158,7 @@ fn make_taplo_cmd(fix: bool) -> Result<StdCommand, DynError> {
 }
 
 fn main() {
-    let cmd = Command::parse();
+    let cmd = Cli::parse();
     if let Err(e) = cmd.run() {
         eprintln!("{}", e);
         std::process::exit(-1);

@@ -1,0 +1,23 @@
+[package]
+name = "emos-client"
+version = "0.1.0"
+edition.workspace = true
+repository.workspace = true
+readme.workspace = true
+license.workspace = true
+
+[dependencies]
+emos-http.workspace = true
+
+serde.workspace = true
+reqwest.workspace = true
+anyhow.workspace = true
+serde_with.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+tracing-subscriber.workspace = true
+
+[lints]
+workspace = true

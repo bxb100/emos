@@ -1,183 +1,170 @@
-import logging
-import random
+"""Generate local cover images with the styles from emby-toolkit."""
+
+import argparse
+import math
 import shutil
 import sys
 from pathlib import Path
-from typing import Dict, Any, List, Tuple, Optional
+from tempfile import TemporaryDirectory
+
+from PIL import Image, ImageFont
 
 from styles.style_multi_1 import create_style_multi_1
 from styles.style_single_1 import create_style_single_1
 from styles.style_single_2 import create_style_single_2
 
-UPDATING_IMAGES = set()
+SCRIPT_DIR = Path(__file__).resolve().parent
+COVERS_DIR = SCRIPT_DIR.parents[1] / "data" / "covers"
+STYLES = {
+    "single_1": create_style_single_1,
+    "single_2": create_style_single_2,
+    "multi_1": create_style_multi_1,
+}
 
-# Setup logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger(__name__)
 
-workspace_root_dir = Path(__file__).resolve().parent.parent.parent
-
-
-class CoverGeneratorService:
-    SORT_BY_DISPLAY_NAME = {"Random": "随机", "Latest": "最新添加"}
-
-    def __init__(self, config: Dict[str, Any]):
-        self.config = config
-        self._cover_style = self.config.get("cover_style", "single_1")
-        self._multi_1_blur = self.config.get("multi_1_blur", False)
-        self._multi_1_use_primary = self.config.get("multi_1_use_primary", True)
-        self._single_use_primary = self.config.get("single_use_primary", False)
-        self.data_path = Path(self.config.get("data_path", "./"))
-        self.covers_path = workspace_root_dir / "data/covers"
-        self.font_path = self.data_path / "fonts"
-        self.covers_path.mkdir(parents=True, exist_ok=True)
-        self.font_path.mkdir(parents=True, exist_ok=True)
-        self.zh_font_path = None
-        self.en_font_path = None
-        self.zh_font_path_multi_1 = None
-        self.en_font_path_multi_1 = None
-        self._fonts_checked_and_ready = False
-
-    def generate_cover(self, library_name: str, title: Tuple[str, str], image_paths: List[str],
-                       item_count: Optional[int] = None) -> Optional[Path]:
-        """
-        Public method to generate a cover image.
-        Returns the path to the generated image file.
-        """
-        self.__get_fonts()
-
-        if not image_paths:
-            logger.warning(f"  ➜ 为 '{library_name}' 没有提供图片路径")
-
-        image_data = self.__generate_image_from_path(library_name, title, image_paths, item_count)
-
-        save_path = Path(self.covers_path) / f"{library_name}.png"
-        with open(save_path, "wb") as f:
-            f.write(image_data)
-
-        return save_path
-
-    def __generate_image_from_path(self, library_name: str, title: Tuple[str, str], image_paths: List[str],
-                                   item_count: Optional[int] = None) -> bytes:
-        logger.debug(f"  ➜ 正在为 '{library_name}' 从本地路径生成封面...")
-        zh_font_size = self.config.get("zh_font_size", 1)
-        en_font_size = self.config.get("en_font_size", 1)
-        blur_size = self.config.get("blur_size", 50)
-        color_ratio = self.config.get("color_ratio", 0.8)
-        font_size = (float(zh_font_size), float(en_font_size))
-
-        if self._cover_style == 'single_1':
-            return create_style_single_1(str(image_paths[0]), title, (str(self.zh_font_path), str(self.en_font_path)),
-                                         font_size=font_size, blur_size=blur_size, color_ratio=color_ratio,
-                                         item_count=item_count, config=self.config)
-        elif self._cover_style == 'single_2':
-            return create_style_single_2(str(image_paths[0]), title, (str(self.zh_font_path), str(self.en_font_path)),
-                                         font_size=font_size, blur_size=blur_size, color_ratio=color_ratio,
-                                         item_count=item_count, config=self.config)
-        elif self._cover_style == 'multi_1':
-            if self.zh_font_path_multi_1 and self.zh_font_path_multi_1.exists():
-                zh_font_path_multi = self.zh_font_path_multi_1
-            else:
-                logger.warning(f"  ➜ 未找到多图专用中文字体 ({self.zh_font_path_multi_1})，将回退使用单图字体。")
-                zh_font_path_multi = self.zh_font_path
-            if self.en_font_path_multi_1 and self.en_font_path_multi_1.exists():
-                en_font_path_multi = self.en_font_path_multi_1
-            else:
-                logger.warning(f"  ➜ 未找到多图专用英文字体 ({self.en_font_path_multi_1})，将回退使用单图字体。")
-                en_font_path_multi = self.en_font_path
-            font_path_multi = (str(zh_font_path_multi), str(en_font_path_multi))
-            zh_font_size_multi = self.config.get("zh_font_size_multi_1", 1)
-            en_font_size_multi = self.config.get("en_font_size_multi_1", 1)
-            font_size_multi = (float(zh_font_size_multi), float(en_font_size_multi))
-            blur_size_multi = self.config.get("blur_size_multi_1", 50)
-            color_ratio_multi = self.config.get("color_ratio_multi_1", 0.8)
-            library_dir = self.covers_path / library_name
-            self.__prepare_multi_images(library_dir, image_paths)
-            return create_style_multi_1(str(library_dir), title, font_path_multi, font_size=font_size_multi,
-                                        is_blur=self._multi_1_blur, blur_size=blur_size_multi,
-                                        color_ratio=color_ratio_multi, item_count=item_count, config=self.config)
-        return None
-
-    def __prepare_multi_images(self, library_dir: Path, source_paths: List[str]):
-        library_dir.mkdir(parents=True, exist_ok=True)
-        for i in range(1, 10):
-            target_path = library_dir / f"{i}.jpg"
-            if not target_path.exists():
-                source_to_copy = random.choice(source_paths)
-                shutil.copy(source_to_copy, target_path)
-
-    def __get_fonts(self):
-        if self._fonts_checked_and_ready:
-            return
-        font_definitions = [
-            {"target_attr": "zh_font_path", "filename": "zh_font.ttf", "local_key": "zh_font_path_local",
-             "url_key": "zh_font_url"},
-            {"target_attr": "en_font_path", "filename": "en_font.ttf", "local_key": "en_font_path_local",
-             "url_key": "en_font_url"}, {"target_attr": "zh_font_path_multi_1", "filename": "zh_font_multi_1.ttf",
-                                         "local_key": "zh_font_path_multi_1_local", "url_key": "zh_font_url_multi_1"},
-            {"target_attr": "en_font_path_multi_1", "filename": "en_font_multi_1.otf",
-             "local_key": "en_font_path_multi_1_local", "url_key": "en_font_url_multi_1"}]
-        for font_def in font_definitions:
-            font_path_to_set = None
-            expected_font_file = self.font_path / font_def["filename"]
-
-            # Check for configured local path first
-            local_path_str = self.config.get(font_def["local_key"])
-            if local_path_str:
-                local_path = Path(local_path_str)
-                if local_path.exists():
-                    logger.debug(f"  ➜ 发现并优先使用用户指定的外部字体: {local_path_str}")
-                    font_path_to_set = local_path
-                else:
-                    logger.warning(f"  ➜ 配置的外部字体路径不存在: {local_path_str}，将忽略此配置。")
-
-            # Then check if we already have it in our data path
-            if not font_path_to_set and expected_font_file.exists():
-                font_path_to_set = expected_font_file
-
-            setattr(self, font_def["target_attr"], font_path_to_set)
-
-        if self.zh_font_path and self.en_font_path:
-            logger.debug("  ➜ 核心字体文件已准备就绪。后续任务将不再重复检查。")
-            self._fonts_checked_and_ready = True
+def collect_images(paths: list[Path]) -> list[Path]:
+    """Expand directories in numeric filename order, preserving explicit file order."""
+    images = []
+    for path in paths:
+        if path.is_dir():
+            images.extend(sorted(
+                (p for p in path.iterdir()
+                 if p.is_file() and p.suffix.lower() in {".jpg", ".jpeg", ".png", ".webp"}),
+                key=lambda p: (0, int(p.stem), p.name) if p.stem.isdecimal()
+                else (1, p.name.casefold(), p.name),
+            ))
+        elif path.is_file():
+            images.append(path)
         else:
-            logger.warning("  ➜ 一个或多个核心字体文件缺失且无法下载。请检查UI中的本地路径或下载链接是否有效。")
+            raise FileNotFoundError(f"图片路径不存在：{path}")
+    if not images:
+        raise ValueError("未找到图片，请提供图片文件或包含图片的目录")
+    return images
 
 
-def main():
-    # Use the sample image we copied
-    script_dir = Path(__file__).resolve().parent
+def generate_cover(
+    image_paths: list[Path],
+    title: tuple[str, str],
+    output_path: Path,
+    *,
+    style: str = "multi_1",
+    font_path: tuple[Path, Path] | None = None,
+    font_size: tuple[float, float] = (1.0, 1.0),
+    blur: bool = False,
+    blur_size: float = 50,
+    color_ratio: float = 0.8,
+    item_count: int | None = None,
+    badge_style: str = "badge",
+    badge_size_ratio: float = 0.12,
+) -> Path:
+    """Write a 1920×1080 PNG, using up to nine images and cycling if fewer are given.
 
-    # Configuration based on available fonts on this macOS machine
-    config = {
-        "data_path": Path(script_dir),
-        "cover_style": "multi_1",  # 可选: "single_1", "single_2",
-        "tab": "style-tab",  # 媒体数量开关
-        "show_item_count": False,  # 默认为关闭
-        # 单图风格设置
-        "zh_font_path_local": "", "en_font_path_local": "", "zh_font_url": "", "en_font_url": "", "zh_font_size": 1,
-        "en_font_size": 1, "blur_size": 50, "color_ratio": 0.8, "single_use_primary": False,  # 多图风格1设置
-        "zh_font_path_multi_1_local": "", "en_font_path_multi_1_local": "", "zh_font_url_multi_1": "",
-        "en_font_url_multi_1": "", "zh_font_size_multi_1": 1.0, "en_font_size_multi_1": 1.0, "blur_size_multi_1": 50,
-        "color_ratio_multi_1": 0.8, "multi_1_blur": False, "multi_1_use_main_font": False,
-        "multi_1_use_primary": True,
+    Single-image styles use the first image. Input images are never modified.
+    Invalid inputs raise ValueError or OSError before the output is written.
+    """
+    if style not in STYLES:
+        raise ValueError(f"未知风格：{style}")
+    if not image_paths:
+        raise ValueError("至少需要一张图片")
+    if any(not math.isfinite(size) or size <= 0 for size in font_size):
+        raise ValueError("字体缩放必须是大于 0 的有限数值")
+    if not math.isfinite(blur_size) or blur_size < 0:
+        raise ValueError("模糊半径必须是大于等于 0 的有限数值")
+    if not 0 <= color_ratio <= 1:
+        raise ValueError("背景混色比例必须在 0 到 1 之间")
+    if item_count is not None and item_count < 0:
+        raise ValueError("媒体数量不能为负数")
+    if badge_style not in {"badge", "ribbon"} or not 0 < badge_size_ratio <= 1:
+        raise ValueError("角标样式必须为 badge 或 ribbon，尺寸比例必须大于 0 且不超过 1")
+
+    if font_path is None:
+        font_path = (
+            SCRIPT_DIR / "fonts" / ("zh_font_multi_1.ttf" if style == "multi_1" else "zh_font.ttf"),
+            SCRIPT_DIR / "fonts" / ("en_font_multi_1.otf" if style == "multi_1" else "en_font.ttf"),
+        )
+    for font in font_path:
+        if not font.is_file():
+            raise FileNotFoundError(f"字体文件不存在：{font}")
+        ImageFont.truetype(str(font), 24)
+
+    selected = image_paths[:9] if style == "multi_1" else image_paths[:1]
+    for path in selected:
+        with Image.open(path) as image:
+            image.load()
+
+    options = {
+        "font_size": font_size,
+        "blur_size": blur_size,
+        "color_ratio": color_ratio,
+        "item_count": item_count,
+        "config": {
+            "show_item_count": item_count is not None,
+            "badge_style": badge_style,
+            "badge_size_ratio": badge_size_ratio,
+        },
     }
-
-    # Initialize service
-    service = CoverGeneratorService(config)
-
-    # Generate the cover
-    library_name = sys.argv[1] if len(sys.argv) > 1 else "default"
-    title = (sys.argv[2], sys.argv[3]) if len(sys.argv) > 3 else ("默认", "Default Media")
-
-    logger.info(f"Generating cover for '{library_name}' using style '{config['cover_style']}'...")
-    output_path = service.generate_cover(library_name, title, [])
-
-    if output_path:
-        logger.info(f"Cover generated successfully: {output_path}")
+    fonts = tuple(str(font) for font in font_path)
+    if style == "multi_1":
+        # Upstream expects 1.jpg through 9.jpg; staging also prevents stale posters on reruns.
+        with TemporaryDirectory(prefix="cover-generator-") as directory:
+            for index in range(9):
+                shutil.copyfile(selected[index % len(selected)], Path(directory) / f"{index + 1}.jpg")
+            image_data = STYLES[style](directory, title, fonts, is_blur=blur, **options)
     else:
-        logger.error("FAILED to generate cover. Check logs for details.")
+        image_data = STYLES[style](str(selected[0]), title, fonts, **options)
+    if not image_data:
+        raise ValueError("封面生成失败，请检查图片和字体")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    output_path.write_bytes(image_data)
+    return output_path
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="从本地图片生成媒体库封面（PNG，1920×1080）")
+    parser.add_argument("namespace", help="默认输入目录和输出文件名，如 scifi")
+    parser.add_argument("zh", help="中文标题")
+    parser.add_argument("en", help="英文标题，可传空字符串")
+    parser.add_argument("images", type=Path, nargs="*", help="图片或目录；默认 data/covers/<namespace>")
+    parser.add_argument("--style", choices=STYLES, default="multi_1", help="封面风格（默认 multi_1）")
+    parser.add_argument("--output", type=Path, help="输出 PNG 路径；默认 data/covers/<namespace>.png")
+    parser.add_argument("--zh-font", type=Path, help="自定义中文字体")
+    parser.add_argument("--en-font", type=Path, help="自定义英文字体")
+    parser.add_argument("--font-size", type=float, nargs=2, default=(1.0, 1.0), metavar=("ZH", "EN"), help="中英文字体缩放")
+    parser.add_argument("--blur", action="store_true", help="多图风格使用模糊背景")
+    parser.add_argument("--blur-size", type=float, default=50, help="模糊半径（默认 50）")
+    parser.add_argument("--color-ratio", type=float, default=0.8, help="背景混色比例，0–1（默认 0.8）")
+    parser.add_argument("--item-count", type=int, help="显示媒体数量角标")
+    parser.add_argument("--badge-style", choices=("badge", "ribbon"), default="badge")
+    parser.add_argument("--badge-size-ratio", type=float, default=0.12, help="角标尺寸比例（默认 0.12）")
+    args = parser.parse_intermixed_args(argv)
+    if not args.namespace or args.namespace in {".", ".."} or "/" in args.namespace or "\\" in args.namespace:
+        parser.error("namespace 必须是单个目录名")
+    fonts_dir = SCRIPT_DIR / "fonts"
+    fonts = (
+        args.zh_font or fonts_dir / ("zh_font_multi_1.ttf" if args.style == "multi_1" else "zh_font.ttf"),
+        args.en_font or fonts_dir / ("en_font_multi_1.otf" if args.style == "multi_1" else "en_font.ttf"),
+    )
+    try:
+        output = generate_cover(
+            collect_images(args.images or [COVERS_DIR / args.namespace]),
+            (args.zh, args.en),
+            args.output or COVERS_DIR / f"{args.namespace}.png",
+            style=args.style,
+            font_path=fonts,
+            font_size=tuple(args.font_size),
+            blur=args.blur,
+            blur_size=args.blur_size,
+            color_ratio=args.color_ratio,
+            item_count=args.item_count,
+            badge_style=args.badge_style,
+            badge_size_ratio=args.badge_size_ratio,
+        )
+    except (OSError, ValueError) as error:
+        print(f"生成失败：{error}", file=sys.stderr)
+        return 1
+    print(output)
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

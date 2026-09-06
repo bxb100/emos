@@ -1,4 +1,7 @@
 #!/usr/bin/env just --justfile
 
 gen namespace zh en:
-   @uv run main.py {{namespace}} {{zh}} {{en}}
+   @uv run main.py {{quote(namespace)}} {{quote(zh)}} {{quote(en)}}
+
+test:
+   @uv run --locked python -m unittest discover -s tests -v

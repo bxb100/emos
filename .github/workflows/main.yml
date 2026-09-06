@@ -8,12 +8,18 @@ on:
     branches:
       - main
     paths:
-      - 'core/**'
       - 'crates/**'
+      - 'xtask/**'
+      - '.cargo/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
   pull_request:
     paths:
-      - 'core/**'
       - 'crates/**'
+      - 'xtask/**'
+      - '.cargo/**'
+      - 'Cargo.toml'
+      - 'Cargo.lock'
 
 permissions:
   contents: write
@@ -67,7 +73,7 @@ jobs:
         with:
           shared-key: "foreign-tv-cache"
 
-      - name: Build Core
+      - name: Build emos
         if: steps.check.outputs.run_build == 'true'
         env:
           BINARY_NAME: ${{ steps.check.outputs.binary_name }}
